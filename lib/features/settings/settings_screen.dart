@@ -64,6 +64,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               '${tr.t('geminiStatus')}: ${AppConfig.hasGemini ? tr.t('statusReady') : tr.t('statusMissing')}\n${tr.t('searchStatus')}: ${AppConfig.hasSearch ? tr.t('statusReady') : tr.t('statusMissing')}',
             ),
           ),
+
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await _store.resetPreferences();
+              if (!mounted) return;
+              await _load();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(tr.t('settingsResetDone'))),
+              );
+            },
+            icon: const Icon(Icons.restart_alt_rounded),
+            label: Text(tr.t('resetSettings')),
+          ),
         ],
       ),
     );

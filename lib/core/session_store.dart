@@ -46,6 +46,12 @@ class SessionStore {
     await prefs.setBool(_animationsKey, value);
   }
 
+  Future<void> resetPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_darkModeKey);
+    await prefs.remove(_animationsKey);
+  }
+
   Future<void> signOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_authModeKey);
