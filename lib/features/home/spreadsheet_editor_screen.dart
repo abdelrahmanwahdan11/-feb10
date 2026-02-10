@@ -475,6 +475,54 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     );
   }
 
+
+
+  Future<void> _openFormulaAssistant() async {
+    final tr = AppLocalizations.of(context);
+    final templates = <String>[
+      '=SUM(A2:A20)',
+      '=AVG(B2:B20)',
+      '=MEDIAN(C2:C20)',
+      '=STDEV(D2:D20)',
+      '=PCTL(E2:E20,0.9)',
+      '=RANK(E2,E2:E20)',
+      '=IF(A2>100,"High","Low")',
+    ];
+
+    final formula = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('formulaAssistant')),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: templates
+                  .map(
+                    (item) => ActionChip(
+                      label: Text(item),
+                      onPressed: () => Navigator.pop(context, item),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+        ],
+      ),
+    );
+
+    if (formula == null || formula.isEmpty) return;
+    setState(() {
+      _doc.snapshot();
+      _doc.setValue(_selectedRow, _selectedCol, formula);
+    });
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -504,6 +552,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _showColumnDeepStats, icon: const Icon(Icons.insights_rounded), tooltip: tr.t('columnDeepStats')),
+          IconButton(onPressed: _openFormulaAssistant, icon: const Icon(Icons.functions_rounded), tooltip: tr.t('formulaAssistant')),
           IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
           IconButton(onPressed: _insertRowBelow, icon: const Icon(Icons.playlist_add_rounded), tooltip: tr.t('insertRowBelow')),
           IconButton(onPressed: _insertColumnRight, icon: const Icon(Icons.add_box_outlined), tooltip: tr.t('insertColumnRight')),
@@ -564,7 +613,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(

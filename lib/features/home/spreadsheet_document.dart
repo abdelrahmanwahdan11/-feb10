@@ -348,6 +348,28 @@ class SpreadsheetDocument {
       return result;
     }
 
+    if (upperFormula.startsWith('PCTL(') && upperFormula.endsWith(')')) {
+      final args = _splitTopLevelArgs(formulaText.substring(5, formulaText.length - 1));
+      if (args.length == 2) {
+        final result = _rangePercentile(args[0], args[1], visiting: visiting);
+        visiting.remove(key);
+        return result;
+      }
+      visiting.remove(key);
+      return '#ERR';
+    }
+
+    if (upperFormula.startsWith('RANK(') && upperFormula.endsWith(')')) {
+      final args = _splitTopLevelArgs(formulaText.substring(5, formulaText.length - 1));
+      if (args.length == 2) {
+        final result = _rangeRank(args[0], args[1], visiting: visiting);
+        visiting.remove(key);
+        return result;
+      }
+      visiting.remove(key);
+      return '#ERR';
+    }
+
     if (upperFormula.startsWith('IF(') && upperFormula.endsWith(')')) {
       final args = _splitTopLevelArgs(formulaText.substring(3, formulaText.length - 1));
       if (args.length == 3) {
@@ -506,6 +528,65 @@ class SpreadsheetDocument {
 
     final out = varianceMode ? variance : (variance <= 0 ? 0.0 : _sqrt(variance));
     return out.toStringAsFixed(out.truncateToDouble() == out ? 0 : 2);
+  }
+
+  String _rangePercentile(String rangeExpr, String percentileExpr, {required Set<String> visiting}) {
+    final values = _rangeValues(rangeExpr, visiting: visiting);
+    if (values.isEmpty) return '0';
+
+    final p = _evaluateExpression(percentileExpr, visiting: visiting);
+    if (p == null) return '#ERR';
+    final clamped = p < 0 ? 0.0 : (p > 1 ? 1.0 : p);
+
+    values.sort();
+    if (values.length == 1) return values.first.toStringAsFixed(values.first.truncateToDouble() == values.first ? 0 : 2);
+
+    final pos = clamped * (values.length - 1);
+    final lower = pos.floor();
+    final upper = pos.ceil();
+    if (lower == upper) {
+      final out = values[lower];
+      return out.toStringAsFixed(out.truncateToDouble() == out ? 0 : 2);
+    }
+    final fraction = pos - lower;
+    final out = values[lower] + (values[upper] - values[lower]) * fraction;
+    return out.toStringAsFixed(out.truncateToDouble() == out ? 0 : 2);
+  }
+
+  String _rangeRank(String valueExpr, String rangeExpr, {required Set<String> visiting}) {
+    final values = _rangeValues(rangeExpr, visiting: visiting);
+    if (values.isEmpty) return '0';
+
+    final target = _evaluateExpression(valueExpr, visiting: visiting);
+    if (target == null) return '#ERR';
+
+    values.sort((a, b) => b.compareTo(a));
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] == target) return '${i + 1}';
+    }
+
+    var rank = 1;
+    for (final v in values) {
+      if (v > target) {
+        rank += 1;
+      }
+    }
+    return '$rank';
+  }
+
+  List<double> _rangeValues(String expr, {required Set<String> visiting}) {
+    final coords = _rangeBounds(expr.toUpperCase());
+    if (coords == null) return [];
+    final (minRow, maxRow, minCol, maxCol) = coords;
+    final values = <double>[];
+    for (var r = minRow; r <= maxRow; r++) {
+      for (var c = minCol; c <= maxCol; c++) {
+        if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
+        final v = _numericCellValue(r, c, visiting);
+        if (v != null) values.add(v);
+      }
+    }
+    return values;
   }
 
   (int, int, int, int)? _rangeBounds(String expr) {
