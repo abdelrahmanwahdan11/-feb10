@@ -19,20 +19,41 @@ class ExcelAiAssistantApp extends StatefulWidget {
   State<ExcelAiAssistantApp> createState() => _ExcelAiAssistantAppState();
 }
 
-class _ExcelAiAssistantAppState extends State<ExcelAiAssistantApp> {
+class _ExcelAiAssistantAppState extends State<ExcelAiAssistantApp> with WidgetsBindingObserver {
   final _store = SessionStore();
   Locale _locale = const Locale('ar');
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   void initState() {
     super.initState();
-    _restoreLocale();
+    WidgetsBinding.instance.addObserver(this);
+    _restorePreferences();
   }
 
-  Future<void> _restoreLocale() async {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _restorePreferences();
+    }
+  }
+
+  Future<void> _restorePreferences() async {
     final code = await _store.getLocaleCode();
-    if (code == null || !mounted) return;
-    setState(() => _locale = Locale(code));
+    final darkMode = await _store.getDarkMode();
+    if (!mounted) return;
+    setState(() {
+      if (code != null && code.isNotEmpty) {
+        _locale = Locale(code);
+      }
+      _themeMode = darkMode ? ThemeMode.dark : ThemeMode.light;
+    });
   }
 
   void _toggleLocale() {
@@ -62,7 +83,7 @@ class _ExcelAiAssistantAppState extends State<ExcelAiAssistantApp> {
         textTheme: GoogleFonts.tajawalTextTheme(ThemeData.dark().textTheme),
         isDark: true,
       ),
-      themeMode: ThemeMode.system,
+      themeMode: _themeMode,
       routerConfig: router,
     );
   }

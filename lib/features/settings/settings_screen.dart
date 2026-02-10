@@ -72,6 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _setLanguage(String value) async {
     setState(() => _languageCode = value);
     await _store.setStringPref('pref_language', value);
+    await _store.setLocaleCode(value);
   }
 
   Future<void> _setExportDefault(String value) async {

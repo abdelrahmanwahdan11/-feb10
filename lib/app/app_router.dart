@@ -24,10 +24,12 @@ import '../features/api/api_keys_screen.dart';
 import '../features/review/expert_review_screen.dart';
 import '../features/review/help_center_screen.dart';
 import '../features/reports/reports_screen.dart';
+import '../features/common/not_found_screen.dart';
 
 GoRouter buildRouter({required void Function() onToggleLanguage}) {
   return GoRouter(
     initialLocation: '/splash',
+    errorBuilder: (_, __) => const NotFoundScreen(),
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
