@@ -95,6 +95,34 @@ class SpreadsheetDocument {
     return removed;
   }
 
+  int removeFullyEmptyRows({bool keepHeader = true}) {
+    var removed = 0;
+    final start = keepHeader ? 1 : 0;
+    for (var r = rows - 1; r >= start; r--) {
+      if (_rowIsEmpty(r)) {
+        _cells.removeAt(r);
+        rows -= 1;
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+
+  int removeFullyEmptyColumns({bool keepFirstColumn = false}) {
+    var removed = 0;
+    final start = keepFirstColumn ? 1 : 0;
+    for (var c = columns - 1; c >= start; c--) {
+      if (_columnIsEmpty(c)) {
+        for (final row in _cells) {
+          row.removeAt(c);
+        }
+        columns -= 1;
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+
   List<String> formulaDiagnostics() {
     final issues = <String>[];
     for (var r = 0; r < rows; r++) {
@@ -277,6 +305,35 @@ class SpreadsheetDocument {
       return result;
     }
 
+    if (upperFormula.startsWith('IF(') && upperFormula.endsWith(')')) {
+      final args = _splitTopLevelArgs(formulaText.substring(3, formulaText.length - 1));
+      if (args.length == 3) {
+        final condition = _evaluateCondition(args[0], visiting: visiting);
+        final branch = condition ? args[1].trim() : args[2].trim();
+        if (branch.startsWith('"') && branch.endsWith('"') && branch.length >= 2) {
+          visiting.remove(key);
+          return branch.substring(1, branch.length - 1);
+        }
+        final branchNumber = _evaluateExpression(branch, visiting: visiting);
+        if (branchNumber != null) {
+          final result = branchNumber.toStringAsFixed(branchNumber.truncateToDouble() == branchNumber ? 0 : 2);
+          visiting.remove(key);
+          return result;
+        }
+        if (branch.toUpperCase().startsWith('=') || RegExp(r'^[A-Za-z]+\d+$').hasMatch(branch)) {
+          final clean = branch.startsWith('=') ? branch.substring(1) : branch;
+          final cell = _cellFromRef(clean.toUpperCase());
+          if (cell != null) {
+            final result = resolvedValue(cell.$1, cell.$2, _visiting: visiting);
+            visiting.remove(key);
+            return result;
+          }
+        }
+        visiting.remove(key);
+        return branch;
+      }
+    }
+
     final ref = _cellFromRef(upperFormula);
     if (ref != null) {
       final result = resolvedValue(ref.$1, ref.$2, _visiting: visiting);
@@ -448,6 +505,60 @@ class SpreadsheetDocument {
       ..addAll(_clone(matrix));
     rows = _cells.length;
     columns = _cells.isEmpty ? 0 : _cells.first.length;
+  }
+
+  bool _evaluateCondition(String expr, {required Set<String> visiting}) {
+    final ops = ['>=', '<=', '==', '!=', '>', '<'];
+    for (final op in ops) {
+      final idx = expr.indexOf(op);
+      if (idx <= 0) continue;
+      final left = expr.substring(0, idx).trim();
+      final right = expr.substring(idx + op.length).trim();
+      final lv = _evaluateExpression(left, visiting: visiting);
+      final rv = _evaluateExpression(right, visiting: visiting);
+      if (lv == null || rv == null) return false;
+      switch (op) {
+        case '>=':
+          return lv >= rv;
+        case '<=':
+          return lv <= rv;
+        case '==':
+          return lv == rv;
+        case '!=':
+          return lv != rv;
+        case '>':
+          return lv > rv;
+        case '<':
+          return lv < rv;
+      }
+    }
+    final raw = expr.trim().toLowerCase();
+    if (raw == 'true') return true;
+    if (raw == 'false') return false;
+    final n = _evaluateExpression(expr, visiting: visiting);
+    return (n ?? 0) != 0;
+  }
+
+  List<String> _splitTopLevelArgs(String input) {
+    final parts = <String>[];
+    var depth = 0;
+    var inString = false;
+    var start = 0;
+    for (var i = 0; i < input.length; i++) {
+      final ch = input[i];
+      if (ch == '"') {
+        inString = !inString;
+      }
+      if (inString) continue;
+      if (ch == '(') depth++;
+      if (ch == ')') depth--;
+      if (ch == ',' && depth == 0) {
+        parts.add(input.substring(start, i).trim());
+        start = i + 1;
+      }
+    }
+    parts.add(input.substring(start).trim());
+    return parts;
   }
 
   double? _evaluateExpression(String expr, {required Set<String> visiting}) {

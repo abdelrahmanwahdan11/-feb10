@@ -436,6 +436,25 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     );
   }
 
+
+
+  Future<void> _optimizeSheet() async {
+    final tr = AppLocalizations.of(context);
+    var removedRows = 0;
+    var removedCols = 0;
+    setState(() {
+      _doc.snapshot();
+      removedRows = _doc.removeFullyEmptyRows(keepHeader: true);
+      removedCols = _doc.removeFullyEmptyColumns(keepFirstColumn: false);
+      if (_selectedRow >= _doc.rows) _selectedRow = _doc.rows - 1;
+      if (_selectedCol >= _doc.columns) _selectedCol = _doc.columns - 1;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr.t('sheetOptimized')}: R-$removedRows / C-$removedCols')),
+    );
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -469,6 +488,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _insertColumnRight, icon: const Icon(Icons.add_box_outlined), tooltip: tr.t('insertColumnRight')),
           IconButton(onPressed: _goToCell, icon: const Icon(Icons.my_location_rounded), tooltip: tr.t('goToCell')),
           IconButton(onPressed: _trimTrailingEmpty, icon: const Icon(Icons.cleaning_services_outlined), tooltip: tr.t('trimSheet')),
+          IconButton(onPressed: _optimizeSheet, icon: const Icon(Icons.auto_fix_high_outlined), tooltip: tr.t('optimizeSheet')),
           IconButton(onPressed: _runFormulaAudit, icon: const Icon(Icons.rule_folder_outlined), tooltip: tr.t('formulaAudit')),
           IconButton(onPressed: _deleteSelectedRow, icon: const Icon(Icons.remove_circle_outline_rounded), tooltip: tr.t('deleteRow')),
           IconButton(onPressed: _deleteSelectedColumn, icon: const Icon(Icons.view_column_outlined), tooltip: tr.t('deleteColumn')),
@@ -523,7 +543,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(
