@@ -118,6 +118,13 @@ class AppLocalizations {
       'confirmClearSheet': 'هل أنت متأكد من مسح جميع الخلايا؟',
       'yes': 'نعم',
       'pastedRange': 'تم لصق البيانات في الجدول',
+      'fillDown': 'تعبئة للأسفل',
+      'sortByColumn': 'فرز العمود',
+      'endRowHint': 'رقم الصف النهائي',
+      'apply': 'تطبيق',
+      'sortState': 'وضع الفرز',
+      'ascending': 'تصاعدي',
+      'descending': 'تنازلي',
     },
     'en': {
       'appTitle': 'Excel AI Assistant',
@@ -223,6 +230,13 @@ class AppLocalizations {
       'confirmClearSheet': 'Are you sure you want to clear all cells?',
       'yes': 'Yes',
       'pastedRange': 'Table data pasted successfully',
+      'fillDown': 'Fill Down',
+      'sortByColumn': 'Sort Column',
+      'endRowHint': 'Target end row number',
+      'apply': 'Apply',
+      'sortState': 'Sort mode',
+      'ascending': 'Ascending',
+      'descending': 'Descending',
     },
   };
 

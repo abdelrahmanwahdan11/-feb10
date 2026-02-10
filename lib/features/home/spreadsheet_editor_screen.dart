@@ -17,6 +17,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
   final _service = ExcelService();
   int _selectedRow = 0;
   int _selectedCol = 0;
+  bool _sortAscending = true;
 
   String _colName(int index) {
     var n = index + 1;
@@ -115,6 +116,48 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     });
   }
 
+
+
+  Future<void> _fillDownFromSelection() async {
+    final tr = AppLocalizations.of(context);
+    final ctrl = TextEditingController(text: '${_selectedRow + 1}');
+    final toRow = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('fillDown')),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(hintText: tr.t('endRowHint')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, int.tryParse(ctrl.text)),
+            child: Text(tr.t('apply')),
+          ),
+        ],
+      ),
+    );
+
+    if (toRow == null) return;
+    final target = toRow - 1;
+    if (target <= _selectedRow) return;
+
+    setState(() {
+      _doc.snapshot();
+      _doc.fillDown(fromRow: _selectedRow, toRow: target, col: _selectedCol);
+    });
+  }
+
+  void _sortBySelectedColumn() {
+    setState(() {
+      _doc.snapshot();
+      _doc.sortByColumn(col: _selectedCol, ascending: _sortAscending, hasHeader: true);
+      _sortAscending = !_sortAscending;
+    });
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -140,6 +183,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _saveCsv, icon: const Icon(Icons.description_outlined), tooltip: tr.t('saveCsv')),
           IconButton(onPressed: _saveXlsx, icon: const Icon(Icons.grid_on_rounded), tooltip: tr.t('saveXlsx')),
           IconButton(onPressed: _pasteTable, icon: const Icon(Icons.content_paste_rounded), tooltip: tr.t('pasteTable')),
+          IconButton(onPressed: _fillDownFromSelection, icon: const Icon(Icons.vertical_align_bottom_rounded), tooltip: tr.t('fillDown')),
+          IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _clearSheet, icon: const Icon(Icons.delete_sweep_rounded), tooltip: tr.t('clearSheet')),
           IconButton(
             onPressed: _doc.canUndo ? () => setState(() => _doc.undo()) : null,
@@ -189,7 +234,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text(tr.t('formulaSupportTip')),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(

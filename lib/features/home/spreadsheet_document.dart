@@ -40,6 +40,38 @@ class SpreadsheetDocument {
     _cells[row][col] = value;
   }
 
+  void fillDown({required int fromRow, required int toRow, required int col}) {
+    if (fromRow < 0 || fromRow >= rows || toRow < 0 || toRow >= rows || col < 0 || col >= columns) return;
+    final source = _cells[fromRow][col];
+    for (var r = fromRow + 1; r <= toRow; r++) {
+      _cells[r][col] = source;
+    }
+  }
+
+  void sortByColumn({required int col, bool ascending = true, bool hasHeader = true}) {
+    if (col < 0 || col >= columns || rows <= 1) return;
+    final start = hasHeader ? 1 : 0;
+    final sortable = _cells.sublist(start);
+
+    sortable.sort((a, b) {
+      final av = a[col];
+      final bv = b[col];
+      final an = double.tryParse(av);
+      final bn = double.tryParse(bv);
+      int cmp;
+      if (an != null && bn != null) {
+        cmp = an.compareTo(bn);
+      } else {
+        cmp = av.toLowerCase().compareTo(bv.toLowerCase());
+      }
+      return ascending ? cmp : -cmp;
+    });
+
+    _cells
+      ..removeRange(start, _cells.length)
+      ..addAll(sortable);
+  }
+
   void addRow() {
     _cells.add(List.generate(columns, (_) => ''));
     rows += 1;
