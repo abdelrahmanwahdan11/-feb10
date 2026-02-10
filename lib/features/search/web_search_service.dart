@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -12,7 +13,7 @@ class WebSearchService {
   bool get isConfigured => apiKey.isNotEmpty && cx.isNotEmpty;
 
   Future<List<String>> search(String query) async {
-    if (!isConfigured) return [];
+    if (!isConfigured || query.trim().isEmpty) return [];
 
     final uri = Uri.https(
       'www.googleapis.com',
@@ -25,7 +26,7 @@ class WebSearchService {
       },
     );
 
-    final response = await _client.get(uri);
+    final response = await _client.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) return [];
 
     final payload = jsonDecode(response.body) as Map<String, dynamic>;

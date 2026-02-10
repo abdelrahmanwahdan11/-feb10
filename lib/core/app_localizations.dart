@@ -61,6 +61,11 @@ class AppLocalizations {
       'searchStatus': 'حالة البحث',
       'statusReady': 'جاهز',
       'statusMissing': 'غير مضاف',
+      'unexpectedError': 'حدث خطأ غير متوقع، حاول مرة أخرى.',
+      'emptyPrompt': 'الرجاء كتابة طلب أولاً',
+      'copied': 'تم نسخ الناتج',
+      'copyOutput': 'نسخ الناتج',
+      'clearOutput': 'مسح الناتج',
     },
     'en': {
       'appTitle': 'Excel AI Assistant',
@@ -109,6 +114,11 @@ class AppLocalizations {
       'searchStatus': 'Search status',
       'statusReady': 'Ready',
       'statusMissing': 'Missing',
+      'unexpectedError': 'Unexpected error, please try again.',
+      'emptyPrompt': 'Please enter a request first',
+      'copied': 'Output copied',
+      'copyOutput': 'Copy Output',
+      'clearOutput': 'Clear Output',
     },
   };
 

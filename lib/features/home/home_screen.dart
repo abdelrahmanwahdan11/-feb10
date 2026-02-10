@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
@@ -52,21 +53,29 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _setResult(String text) {
+    if (!mounted) return;
+    setState(() => _result = text);
+  }
+
   Future<void> _pickExcelFile() async {
     final tr = AppLocalizations.of(context);
-    final res = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls', 'xlsm', 'csv'],
-    );
-    if (res == null || !mounted) return;
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls', 'xlsm', 'csv'],
+      );
+      if (res == null || !mounted) return;
 
-    final file = res.files.single;
-    final preview = await _excelService.previewFile(file);
-
-    setState(() {
-      _fileName = file.name;
-      _result = '${tr.t('filePreview')}:\n$preview';
-    });
+      final file = res.files.single;
+      final preview = await _excelService.previewFile(file);
+      setState(() {
+        _fileName = file.name;
+        _result = '${tr.t('filePreview')}:\n$preview';
+      });
+    } catch (_) {
+      _setResult(tr.t('unexpectedError'));
+    }
   }
 
   Future<void> _runAiFlow() async {
@@ -75,11 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('authRequired'))));
       return;
     }
-    if (_promptCtrl.text.trim().isEmpty) return;
+    if (_promptCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('emptyPrompt'))));
+      return;
+    }
 
     setState(() => _busy = true);
-
-    final prompt = '''
+    try {
+      final prompt = '''
 You are an Excel automation assistant.
 User request: ${_promptCtrl.text}
 File: ${_fileName ?? tr.t('noFileSelected')}
@@ -90,54 +102,68 @@ Please return:
 4) Final report structure
 ''';
 
-    final output = await _gemini.runPrompt(prompt, missingKeyMessage: tr.t('geminiMissing'));
-    if (!mounted) return;
-
-    setState(() {
-      _result = output;
-      _busy = false;
-    });
+      final output = await _gemini.runPrompt(prompt, missingKeyMessage: tr.t('geminiMissing'));
+      _setResult(output);
+    } catch (_) {
+      _setResult(tr.t('unexpectedError'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _runWebInsights() async {
     final tr = AppLocalizations.of(context);
     final query = _promptCtrl.text.trim();
-    if (query.isEmpty) return;
-
-    setState(() => _busy = true);
-
-    if (!_search.isConfigured) {
-      setState(() {
-        _result = tr.t('searchMissing');
-        _busy = false;
-      });
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('emptyPrompt'))));
       return;
     }
 
-    final links = await _search.search(query);
-    if (!mounted) return;
+    setState(() => _busy = true);
 
-    setState(() {
-      _result = links.isEmpty ? tr.t('searchNoResult') : '${tr.t('searchResults')}\n${links.join('\n')}';
-      _busy = false;
-    });
+    try {
+      if (!_search.isConfigured) {
+        _setResult(tr.t('searchMissing'));
+        return;
+      }
+
+      final links = await _search.search(query);
+      _setResult(links.isEmpty ? tr.t('searchNoResult') : '${tr.t('searchResults')}\n${links.join('\n')}');
+    } catch (_) {
+      _setResult(tr.t('unexpectedError'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _runAutopilot() async {
     final tr = AppLocalizations.of(context);
+    if (_promptCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('emptyPrompt'))));
+      return;
+    }
+
     setState(() => _busy = true);
+    try {
+      final aiPlan = await _gemini.runPrompt(
+        'Create an autonomous Excel workflow plan for: ${_promptCtrl.text}',
+        missingKeyMessage: tr.t('geminiMissing'),
+      );
+      final reportPath = await _excelService.createDemoReport();
+      _setResult('${tr.t('autopilotDone')}\n\n$aiPlan\n\n${tr.t('generatedFilePath')}:\n$reportPath');
+    } catch (_) {
+      _setResult(tr.t('unexpectedError'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
-    final aiPlan = await _gemini.runPrompt(
-      'Create an autonomous Excel workflow plan for: ${_promptCtrl.text}',
-      missingKeyMessage: tr.t('geminiMissing'),
-    );
-    final reportPath = await _excelService.createDemoReport();
-
+  Future<void> _copyOutput() async {
+    final tr = AppLocalizations.of(context);
+    if (_result.trim().isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: _result));
     if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _result = '${tr.t('autopilotDone')}\n\n$aiPlan\n\n${tr.t('generatedFilePath')}:\n$reportPath';
-    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('copied'))));
   }
 
   Future<void> _signOut() async {
@@ -229,6 +255,16 @@ Please return:
                       onPressed: _runWebInsights,
                       icon: const Icon(Icons.travel_explore_rounded),
                       label: Text(tr.t('searchWeb')),
+                    ),
+                    TextButton.icon(
+                      onPressed: _copyOutput,
+                      icon: const Icon(Icons.copy_rounded),
+                      label: Text(tr.t('copyOutput')),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _setResult(''),
+                      icon: const Icon(Icons.clear_all_rounded),
+                      label: Text(tr.t('clearOutput')),
                     ),
                   ],
                 ),
