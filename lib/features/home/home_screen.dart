@@ -46,9 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadAuthMode() async {
     final mode = await _store.getAuthMode();
-    if (mounted) setState(() => _authMode = mode);
+    if (!mounted) return;
+    setState(() => _authMode = mode);
+
     if (mode != null) {
-      await _store.setLastVisitedRoute('/home');
+      final lastRoute = await _store.getLastVisitedRoute();
+      if (lastRoute == null || lastRoute.isEmpty) {
+        await _store.setLastVisitedRoute('/home');
+      }
     }
   }
 
