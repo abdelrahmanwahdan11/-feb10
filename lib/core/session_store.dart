@@ -56,6 +56,22 @@ class SessionStore {
     await prefs.setBool(key, value);
   }
 
+
+  Future<int> getIntPref(String key, {int defaultValue = 0}) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(key) ?? defaultValue;
+  }
+
+  Future<void> setIntPref(String key, int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(key, value);
+  }
+
+  Future<void> incrementIntPref(String key, {int by = 1}) async {
+    final current = await getIntPref(key);
+    await setIntPref(key, current + by);
+  }
+
   Future<String?> getStringPref(String key) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(key);

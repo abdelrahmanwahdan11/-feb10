@@ -90,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _fileName = file.name;
         _result = '${tr.t('filePreview')}:\n$previewText';
       });
+      await _store.incrementIntPref('progress_uploads');
     } catch (_) {
       _setResult(tr.t('unexpectedError'));
     }
@@ -118,6 +119,7 @@ Please return:
 
       final output = await _gemini.runPrompt(prompt, missingKeyMessage: tr.t('geminiMissing'));
       _setResult(output);
+      await _store.incrementIntPref('progress_ai_runs');
     } catch (_) {
       _setResult(tr.t('unexpectedError'));
     } finally {
@@ -144,6 +146,7 @@ Please return:
 
       final links = await _search.search(query);
       _setResult(links.isEmpty ? tr.t('searchNoResult') : '${tr.t('searchResults')}\n${links.join('\n')}');
+      await _store.incrementIntPref('progress_web_runs');
     } catch (_) {
       _setResult(tr.t('unexpectedError'));
     } finally {
@@ -167,6 +170,7 @@ Please return:
       );
       final reportPath = await _excelService.createDemoReport();
       _setResult('${tr.t('autopilotDone')}\n\n$aiPlan\n\n${tr.t('generatedFilePath')}:\n$reportPath');
+      await _store.incrementIntPref('progress_autopilot_runs');
     } catch (_) {
       _setResult(tr.t('unexpectedError'));
     } finally {
@@ -255,6 +259,26 @@ Please return:
                               onPressed: () => context.push('/settings'),
                               icon: const Icon(Icons.settings_rounded),
                               label: Text(tr.t('settings')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/progress'),
+                              icon: const Icon(Icons.insights_rounded),
+                              label: Text(tr.t('progressCenter')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/profile'),
+                              icon: const Icon(Icons.person_outline_rounded),
+                              label: Text(tr.t('profile')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/notifications'),
+                              icon: const Icon(Icons.notifications_none_rounded),
+                              label: Text(tr.t('notifications')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/privacy'),
+                              icon: const Icon(Icons.shield_outlined),
+                              label: Text(tr.t('privacySecurity')),
                             ),
                             OutlinedButton.icon(
                               onPressed: () => context.push('/expert-review'),

@@ -7,6 +7,10 @@ import '../features/home/templates_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/account/profile_screen.dart';
+import '../features/notifications/notifications_screen.dart';
+import '../features/privacy/privacy_security_screen.dart';
+import '../features/progress/progress_center_screen.dart';
 import '../features/review/expert_review_screen.dart';
 import '../features/review/help_center_screen.dart';
 import '../features/reports/reports_screen.dart';
@@ -26,6 +30,10 @@ GoRouter buildRouter({required void Function() onToggleLanguage}) {
       GoRoute(path: '/templates', builder: (_, __) => const TemplatesScreen()),
       GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/privacy', builder: (_, __) => const PrivacySecurityScreen()),
+      GoRoute(path: '/progress', builder: (_, __) => const ProgressCenterScreen()),
       GoRoute(path: '/expert-review', builder: (_, __) => const ExpertReviewScreen()),
       GoRoute(path: '/help-center', builder: (_, __) => const HelpCenterScreen()),
     ],
