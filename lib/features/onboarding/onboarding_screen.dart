@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_localizations.dart';
+import '../../core/session_store.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,7 +14,22 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
+  final _store = SessionStore();
   int _index = 0;
+
+  Future<void> _nextOrFinish() async {
+    final tr = AppLocalizations.of(context);
+    if (_index == 2) {
+      await _store.setSeenOnboarding();
+      if (!mounted) return;
+      context.go('/auth');
+      return;
+    }
+    _controller.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(tr.t('next')), duration: const Duration(milliseconds: 500)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,13 +87,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () {
-                if (_index == items.length - 1) {
-                  context.go('/auth');
-                } else {
-                  _controller.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
-                }
-              },
+              onPressed: _nextOrFinish,
               icon: const Icon(Icons.arrow_forward_ios_rounded),
               label: Text(_index == items.length - 1 ? tr.t('start') : tr.t('next')),
             ).animate().fadeIn(delay: 300.ms),

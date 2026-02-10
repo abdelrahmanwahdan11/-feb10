@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_localizations.dart';
+import '../../core/session_store.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,12 +15,58 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final _store = SessionStore();
+  Timer? _navigationTimer;
+
+  static const Set<String> _restorableRoutes = {
+    '/home',
+    '/sheet',
+    '/templates',
+    '/reports',
+    '/settings',
+    '/profile',
+    '/notifications',
+    '/privacy',
+    '/progress',
+    '/billing',
+    '/team',
+    '/integrations',
+    '/activity',
+    '/backup',
+    '/support-tickets',
+    '/dashboard',
+    '/automation',
+    '/data-catalog',
+    '/api-keys',
+    '/expert-review',
+    '/help-center',
+  };
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () {
-      if (mounted) context.go('/onboarding');
+    _navigationTimer = Timer(const Duration(seconds: 2), () async {
+      final seen = await _store.hasSeenOnboarding();
+      final authMode = await _store.getAuthMode();
+      final lastRoute = await _store.getLastVisitedRoute();
+      if (!mounted) return;
+      if (!seen) {
+        context.go('/onboarding');
+      } else if (authMode == null) {
+        context.go('/auth');
+      } else if (lastRoute != null && _restorableRoutes.contains(lastRoute)) {
+        context.go(lastRoute);
+      } else {
+        context.go('/home');
+      }
     });
+  }
+
+
+  @override
+  void dispose() {
+    _navigationTimer?.cancel();
+    super.dispose();
   }
 
   @override
