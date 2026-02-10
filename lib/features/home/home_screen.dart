@@ -281,6 +281,36 @@ Please return:
                               label: Text(tr.t('privacySecurity')),
                             ),
                             OutlinedButton.icon(
+                              onPressed: () => context.push('/billing'),
+                              icon: const Icon(Icons.payments_outlined),
+                              label: Text(tr.t('billing')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/team'),
+                              icon: const Icon(Icons.groups_outlined),
+                              label: Text(tr.t('teamWorkspace')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/integrations'),
+                              icon: const Icon(Icons.extension_outlined),
+                              label: Text(tr.t('integrations')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/activity'),
+                              icon: const Icon(Icons.timeline_outlined),
+                              label: Text(tr.t('activityTimeline')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/backup'),
+                              icon: const Icon(Icons.backup_outlined),
+                              label: Text(tr.t('backupRestore')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/support-tickets'),
+                              icon: const Icon(Icons.support_agent_outlined),
+                              label: Text(tr.t('supportTickets')),
+                            ),
+                            OutlinedButton.icon(
                               onPressed: () => context.push('/expert-review'),
                               icon: const Icon(Icons.fact_check_rounded),
                               label: Text(tr.t('expertReview')),
