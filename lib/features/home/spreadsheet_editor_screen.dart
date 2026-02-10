@@ -49,6 +49,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
 
     if (val != null) {
       setState(() {
+        _doc.snapshot();
         _selectedRow = row;
         _selectedCol = col;
         _doc.setValue(row, col, val.trim());
@@ -80,14 +81,38 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
         actions: [
           IconButton(onPressed: _saveCsv, icon: const Icon(Icons.description_outlined), tooltip: tr.t('saveCsv')),
           IconButton(onPressed: _saveXlsx, icon: const Icon(Icons.grid_on_rounded), tooltip: tr.t('saveXlsx')),
+          IconButton(
+            onPressed: _doc.canUndo ? () => setState(() => _doc.undo()) : null,
+            icon: const Icon(Icons.undo_rounded),
+            tooltip: tr.t('undo'),
+          ),
+          IconButton(
+            onPressed: _doc.canRedo ? () => setState(() => _doc.redo()) : null,
+            icon: const Icon(Icons.redo_rounded),
+            tooltip: tr.t('redo'),
+          ),
         ],
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FloatingActionButton.small(onPressed: () => setState(_doc.addColumn), heroTag: 'add_col', child: const Icon(Icons.view_column)),
+          FloatingActionButton.small(
+            onPressed: () => setState(() {
+              _doc.snapshot();
+              _doc.addColumn();
+            }),
+            heroTag: 'add_col',
+            child: const Icon(Icons.view_column),
+          ),
           const SizedBox(height: 10),
-          FloatingActionButton.small(onPressed: () => setState(_doc.addRow), heroTag: 'add_row', child: const Icon(Icons.view_agenda)),
+          FloatingActionButton.small(
+            onPressed: () => setState(() {
+              _doc.snapshot();
+              _doc.addRow();
+            }),
+            heroTag: 'add_row',
+            child: const Icon(Icons.view_agenda),
+          ),
         ],
       ),
       body: Column(
@@ -101,6 +126,10 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(tr.t('formulaSupportTip')),
           ),
           Expanded(
             child: Scrollbar(
