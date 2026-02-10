@@ -508,6 +508,64 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     );
   }
 
+
+  Future<void> _showTrendInsights() async {
+    final tr = AppLocalizations.of(context);
+    final line = _doc.trendLine(0, _selectedCol, skipHeader: true);
+    final forecasts = _doc.forecastNextRows(xCol: 0, yCol: _selectedCol, predictCount: 3, skipHeader: true);
+
+    String fmt(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 3);
+    final forecastText = forecasts.isEmpty
+        ? '-'
+        : forecasts.map((f) => '+${f.$1}: ${fmt(f.$2)}').join('\n');
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('trendInsights')} ${_colName(_selectedCol)}'),
+        content: Text(
+          '${tr.t('trendSlope')}: ${fmt(line.slope)}\n${tr.t('trendIntercept')}: ${fmt(line.intercept)}\n${tr.t('samplesUsed')}: ${line.samples}\n\n${tr.t('nextForecasts')}:\n$forecastText',
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _applyMovingAverageToSelected() async {
+    final tr = AppLocalizations.of(context);
+    final ctrl = TextEditingController(text: '3');
+    final window = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('movingAverage')),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(hintText: tr.t('windowSizeHint')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, int.tryParse(ctrl.text)), child: Text(tr.t('apply'))),
+        ],
+      ),
+    );
+
+    if (window == null || window < 2) return;
+    setState(() {
+      _doc.snapshot();
+      if (_selectedCol == _doc.columns - 1) {
+        _doc.addColumn();
+      }
+      _doc.applyMovingAverage(sourceCol: _selectedCol, targetCol: _selectedCol + 1, window: window, skipHeader: true);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr.t('movingAverageApplied')}: ${_colName(_selectedCol + 1)}')),
+    );
+  }
+
   Future<void> _openFormulaAssistant() async {
     final tr = AppLocalizations.of(context);
     final templates = <String>[
@@ -583,6 +641,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _showColumnDeepStats, icon: const Icon(Icons.insights_rounded), tooltip: tr.t('columnDeepStats')),
+          IconButton(onPressed: _showTrendInsights, icon: const Icon(Icons.show_chart_rounded), tooltip: tr.t('trendInsights')),
+          IconButton(onPressed: _applyMovingAverageToSelected, icon: const Icon(Icons.multiline_chart_rounded), tooltip: tr.t('movingAverage')),
           IconButton(onPressed: _normalizeSelectedColumn, icon: const Icon(Icons.auto_graph_rounded), tooltip: tr.t('normalizeColumn')),
           IconButton(onPressed: _detectOutliers, icon: const Icon(Icons.warning_amber_rounded), tooltip: tr.t('outlierDetection')),
           IconButton(onPressed: _openFormulaAssistant, icon: const Icon(Icons.functions_rounded), tooltip: tr.t('formulaAssistant')),
@@ -646,7 +706,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('outlierTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('outlierTip')} | ${tr.t('trendTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(

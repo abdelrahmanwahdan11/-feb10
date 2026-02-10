@@ -278,6 +278,88 @@ class SpreadsheetDocument {
     return rowsOut;
   }
 
+  ({double slope, double intercept, int samples}) trendLine(int xCol, int yCol, {bool skipHeader = true}) {
+    final start = skipHeader ? 1 : 0;
+    final x = <double>[];
+    final y = <double>[];
+    for (var r = start; r < rows; r++) {
+      final xv = double.tryParse(_cells[r][xCol]);
+      final yv = double.tryParse(_cells[r][yCol]);
+      if (xv == null || yv == null) continue;
+      x.add(xv);
+      y.add(yv);
+    }
+    if (x.length < 2) return (slope: 0, intercept: 0, samples: x.length);
+
+    final xMean = x.fold<double>(0, (a, b) => a + b) / x.length;
+    final yMean = y.fold<double>(0, (a, b) => a + b) / y.length;
+    var num = 0.0;
+    var den = 0.0;
+    for (var i = 0; i < x.length; i++) {
+      final dx = x[i] - xMean;
+      final dy = y[i] - yMean;
+      num += dx * dy;
+      den += dx * dx;
+    }
+    if (den == 0) return (slope: 0, intercept: yMean, samples: x.length);
+    final slope = num / den;
+    final intercept = yMean - slope * xMean;
+    return (slope: slope, intercept: intercept, samples: x.length);
+  }
+
+  int applyMovingAverage({required int sourceCol, required int targetCol, int window = 3, bool skipHeader = true}) {
+    if (window < 2 || sourceCol < 0 || sourceCol >= columns || targetCol < 0 || targetCol >= columns) return 0;
+    final start = skipHeader ? 1 : 0;
+    var updated = 0;
+    for (var r = start; r < rows; r++) {
+      final from = r - window + 1;
+      if (from < start) continue;
+      var sum = 0.0;
+      var count = 0;
+      for (var i = from; i <= r; i++) {
+        final v = double.tryParse(_cells[i][sourceCol]);
+        if (v == null) continue;
+        sum += v;
+        count += 1;
+      }
+      if (count == 0) continue;
+      final ma = sum / count;
+      _cells[r][targetCol] = ma.toStringAsFixed(3);
+      updated += 1;
+    }
+    return updated;
+  }
+
+  List<(int, double)> forecastNextRows({
+    required int xCol,
+    required int yCol,
+    required int predictCount,
+    bool skipHeader = true,
+  }) {
+    if (predictCount <= 0) return [];
+    final line = trendLine(xCol, yCol, skipHeader: skipHeader);
+    if (line.samples < 2) return [];
+
+    final start = skipHeader ? 1 : 0;
+    double? lastX;
+    for (var r = rows - 1; r >= start; r--) {
+      final xv = double.tryParse(_cells[r][xCol]);
+      if (xv != null) {
+        lastX = xv;
+        break;
+      }
+    }
+    if (lastX == null) return [];
+
+    final out = <(int, double)>[];
+    for (var i = 1; i <= predictCount; i++) {
+      final x = lastX + i;
+      final y = line.slope * x + line.intercept;
+      out.add((i, y));
+    }
+    return out;
+  }
+
   List<(int, int)> findMatches(String query, {bool caseSensitive = false}) {
     final q = caseSensitive ? query : query.toLowerCase();
     if (q.trim().isEmpty) return [];
