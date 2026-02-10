@@ -176,6 +176,26 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     );
   }
 
+
+  Future<void> _showColumnDeepStats() async {
+    final tr = AppLocalizations.of(context);
+    final stats = _doc.columnAdvancedStats(_selectedCol, skipHeader: true);
+    String fmt(double? v) => v == null ? '-' : v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 2);
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('columnDeepStats')} ${_colName(_selectedCol)}'),
+        content: Text(
+          '${tr.t('count')}: ${stats.count}\n${tr.t('sumValue')}: ${fmt(stats.sum)}\n${tr.t('medianValue')}: ${fmt(stats.median)}\n${tr.t('varianceValue')}: ${fmt(stats.variance)}\n${tr.t('stdevValue')}: ${fmt(stats.stdev)}',
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
+  }
+
   void _duplicateSelectedRow() {
     if (_selectedRow < 0 || _selectedRow >= _doc.rows) return;
     setState(() {
@@ -483,6 +503,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _fillDownFromSelection, icon: const Icon(Icons.vertical_align_bottom_rounded), tooltip: tr.t('fillDown')),
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
+          IconButton(onPressed: _showColumnDeepStats, icon: const Icon(Icons.insights_rounded), tooltip: tr.t('columnDeepStats')),
           IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
           IconButton(onPressed: _insertRowBelow, icon: const Icon(Icons.playlist_add_rounded), tooltip: tr.t('insertRowBelow')),
           IconButton(onPressed: _insertColumnRight, icon: const Icon(Icons.add_box_outlined), tooltip: tr.t('insertColumnRight')),
@@ -543,7 +564,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(

@@ -209,6 +209,35 @@ class SpreadsheetDocument {
     return (min: min, max: max, avg: avg, count: count);
   }
 
+  ({double? median, double? stdev, double? variance, double sum, int count}) columnAdvancedStats(
+    int col, {
+    bool skipHeader = true,
+  }) {
+    if (col < 0 || col >= columns) return (median: null, stdev: null, variance: null, sum: 0, count: 0);
+    final values = <double>[];
+    final start = skipHeader ? 1 : 0;
+    for (var r = start; r < rows; r++) {
+      final val = double.tryParse(_cells[r][col]);
+      if (val != null) values.add(val);
+    }
+    if (values.isEmpty) return (median: null, stdev: null, variance: null, sum: 0, count: 0);
+
+    values.sort();
+    final mid = values.length ~/ 2;
+    final median = values.length.isOdd ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+    final sum = values.fold<double>(0, (acc, v) => acc + v);
+    final mean = sum / values.length;
+    var variance = 0.0;
+    for (final v in values) {
+      final d = v - mean;
+      variance += d * d;
+    }
+    variance /= values.length;
+    final stdev = variance <= 0 ? 0.0 : _sqrt(variance);
+
+    return (median: median, stdev: stdev, variance: variance, sum: sum, count: values.length);
+  }
+
   List<(int, int)> findMatches(String query, {bool caseSensitive = false}) {
     final q = caseSensitive ? query : query.toLowerCase();
     if (q.trim().isEmpty) return [];
@@ -301,6 +330,20 @@ class SpreadsheetDocument {
     if (upperFormula.startsWith('MEDIAN(') && upperFormula.endsWith(')')) {
       final expr = upperFormula.substring(7, upperFormula.length - 1);
       final result = _rangeMedian(expr, visiting: visiting);
+      visiting.remove(key);
+      return result;
+    }
+
+    if (upperFormula.startsWith('STDEV(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(6, upperFormula.length - 1);
+      final result = _rangeDispersion(expr, visiting: visiting, varianceMode: false);
+      visiting.remove(key);
+      return result;
+    }
+
+    if (upperFormula.startsWith('VAR(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(4, upperFormula.length - 1);
+      final result = _rangeDispersion(expr, visiting: visiting, varianceMode: true);
       visiting.remove(key);
       return result;
     }
@@ -437,6 +480,34 @@ class SpreadsheetDocument {
     return median.toStringAsFixed(median.truncateToDouble() == median ? 0 : 2);
   }
 
+  String _rangeDispersion(String expr, {required Set<String> visiting, required bool varianceMode}) {
+    final coords = _rangeBounds(expr);
+    if (coords == null) return '#ERR';
+    final (minRow, maxRow, minCol, maxCol) = coords;
+
+    final values = <double>[];
+    for (var r = minRow; r <= maxRow; r++) {
+      for (var c = minCol; c <= maxCol; c++) {
+        if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
+        final v = _numericCellValue(r, c, visiting);
+        if (v != null) values.add(v);
+      }
+    }
+    if (values.isEmpty) return '0';
+
+    final sum = values.fold<double>(0, (acc, v) => acc + v);
+    final mean = sum / values.length;
+    var variance = 0.0;
+    for (final v in values) {
+      final d = v - mean;
+      variance += d * d;
+    }
+    variance /= values.length;
+
+    final out = varianceMode ? variance : (variance <= 0 ? 0.0 : _sqrt(variance));
+    return out.toStringAsFixed(out.truncateToDouble() == out ? 0 : 2);
+  }
+
   (int, int, int, int)? _rangeBounds(String expr) {
     final parts = expr.split(':');
     if (parts.length != 2) return null;
@@ -505,6 +576,15 @@ class SpreadsheetDocument {
       ..addAll(_clone(matrix));
     rows = _cells.length;
     columns = _cells.isEmpty ? 0 : _cells.first.length;
+  }
+
+  double _sqrt(double value) {
+    if (value <= 0) return 0;
+    var x = value;
+    for (var i = 0; i < 12; i++) {
+      x = 0.5 * (x + value / x);
+    }
+    return x;
   }
 
   bool _evaluateCondition(String expr, {required Set<String> visiting}) {
