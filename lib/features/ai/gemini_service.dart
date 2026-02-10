@@ -18,7 +18,7 @@ class GeminiService {
 
     try {
       final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _apiKey);
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await model.generateContent([Content.text(prompt)]).timeout(const Duration(seconds: 30));
       final text = response.text?.trim();
       return (text == null || text.isEmpty) ? fallbackErrorMessage : text;
     } catch (_) {

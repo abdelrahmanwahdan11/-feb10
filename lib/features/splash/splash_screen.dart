@@ -16,6 +16,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   final _store = SessionStore();
+  Timer? _navigationTimer;
 
   static const Set<String> _restorableRoutes = {
     '/home',
@@ -34,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () async {
+    _navigationTimer = Timer(const Duration(seconds: 2), () async {
       final seen = await _store.hasSeenOnboarding();
       final authMode = await _store.getAuthMode();
       final lastRoute = await _store.getLastVisitedRoute();
@@ -49,6 +50,13 @@ class _SplashScreenState extends State<SplashScreen> {
         context.go('/home');
       }
     });
+  }
+
+
+  @override
+  void dispose() {
+    _navigationTimer?.cancel();
+    super.dispose();
   }
 
   @override

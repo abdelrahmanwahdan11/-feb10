@@ -47,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadAuthMode() async {
     final mode = await _store.getAuthMode();
     if (mounted) setState(() => _authMode = mode);
+    if (mode != null) {
+      await _store.setLastVisitedRoute('/home');
+    }
   }
 
 
@@ -61,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openRoute(String route) async {
+    if (!route.startsWith('/')) return;
     await _store.setLastVisitedRoute(route);
     if (!mounted) return;
     context.push(route);
@@ -216,7 +220,7 @@ Please return:
     await _store.signOut();
     if (!mounted) return;
     _setResult('');
-    context.go('/auth');
+    context.go('/splash');
   }
 
   @override

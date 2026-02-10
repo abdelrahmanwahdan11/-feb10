@@ -4,16 +4,20 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class WebSearchService {
-  WebSearchService({required this.apiKey, required this.cx, http.Client? client}) : _client = client ?? http.Client();
+  WebSearchService({required this.apiKey, required this.cx, http.Client? client})
+      : _client = client ?? http.Client(),
+        _ownsClient = client == null;
 
   final String apiKey;
   final String cx;
   final http.Client _client;
+  final bool _ownsClient;
 
   bool get isConfigured => apiKey.isNotEmpty && cx.isNotEmpty;
 
   Future<List<String>> search(String query) async {
-    if (!isConfigured || query.trim().isEmpty) return [];
+    final normalizedQuery = query.trim();
+    if (!isConfigured || normalizedQuery.isEmpty) return [];
 
     final uri = Uri.https(
       'www.googleapis.com',
@@ -21,7 +25,7 @@ class WebSearchService {
       {
         'key': apiKey,
         'cx': cx,
-        'q': query,
+        'q': normalizedQuery,
         'num': '5',
       },
     );
@@ -47,5 +51,7 @@ class WebSearchService {
     }
   }
 
-  void dispose() => _client.close();
+  void dispose() {
+    if (_ownsClient) _client.close();
+  }
 }
