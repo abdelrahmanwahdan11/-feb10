@@ -261,6 +261,16 @@ Please return:
                               icon: const Icon(Icons.fact_check_rounded),
                               label: Text(tr.t('expertReview')),
                             ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/templates'),
+                              icon: const Icon(Icons.inventory_2_rounded),
+                              label: Text(tr.t('templatesCenter')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/help-center'),
+                              icon: const Icon(Icons.support_agent_rounded),
+                              label: Text(tr.t('helpCenter')),
+                            ),
                           ],
                         ),
                       ],

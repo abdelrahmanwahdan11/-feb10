@@ -101,4 +101,56 @@ class ExcelService {
     if (!hasSpecial) return cell;
     return '"${cell.replaceAll('"', '""')}"';
   }
+
+  Future<String> createBudgetTemplate() async {
+    final workbook = Workbook();
+    final sheet = workbook.worksheets[0];
+
+    sheet.getRangeByName('A1').setText('Category');
+    sheet.getRangeByName('B1').setText('Planned');
+    sheet.getRangeByName('C1').setText('Actual');
+    sheet.getRangeByName('D1').setText('Variance');
+
+    final rows = ['Rent', 'Utilities', 'Food', 'Transport'];
+    for (var i = 0; i < rows.length; i++) {
+      final r = i + 2;
+      sheet.getRangeByName('A$r').setText(rows[i]);
+      sheet.getRangeByName('B$r').setNumber(1000 + i * 100);
+      sheet.getRangeByName('C$r').setNumber(950 + i * 120);
+      sheet.getRangeByName('D$r').setFormula('=C$r-B$r');
+    }
+
+    return _saveWorkbook(workbook, 'budget_template.xlsx');
+  }
+
+  Future<String> createInvoiceTemplate() async {
+    final workbook = Workbook();
+    final sheet = workbook.worksheets[0];
+
+    sheet.getRangeByName('A1').setText('Item');
+    sheet.getRangeByName('B1').setText('Qty');
+    sheet.getRangeByName('C1').setText('Price');
+    sheet.getRangeByName('D1').setText('Total');
+
+    for (var r = 2; r <= 6; r++) {
+      sheet.getRangeByName('A$r').setText('Item $r');
+      sheet.getRangeByName('B$r').setNumber(1);
+      sheet.getRangeByName('C$r').setNumber(100);
+      sheet.getRangeByName('D$r').setFormula('=B$r*C$r');
+    }
+    sheet.getRangeByName('C8').setText('Grand Total');
+    sheet.getRangeByName('D8').setFormula('=SUM(D2:D6)');
+
+    return _saveWorkbook(workbook, 'invoice_template.xlsx');
+  }
+
+  Future<String> _saveWorkbook(Workbook workbook, String fileName) async {
+    final bytes = workbook.saveAsStream();
+    workbook.dispose();
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
 }
