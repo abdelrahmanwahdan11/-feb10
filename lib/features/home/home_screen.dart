@@ -246,6 +246,21 @@ Please return:
                               icon: const Icon(Icons.table_view_rounded),
                               label: Text(tr.t('openSheetEditor')),
                             ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/reports'),
+                              icon: const Icon(Icons.assessment_rounded),
+                              label: Text(tr.t('reportsCenter')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/settings'),
+                              icon: const Icon(Icons.settings_rounded),
+                              label: Text(tr.t('settings')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/expert-review'),
+                              icon: const Icon(Icons.fact_check_rounded),
+                              label: Text(tr.t('expertReview')),
+                            ),
                           ],
                         ),
                       ],

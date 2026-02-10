@@ -10,6 +10,7 @@
 - معاينة مبدئية للملف (خاصة CSV حالياً)
 - Autopilot Mode: يدمج خطة AI + إنشاء ملف Excel تجريبي
 - Smart Web Search عبر Google Custom Search API
+- صفحات إضافية مهمة: مركز التقارير + الإعدادات + مراجعة فريق الخبراء
 - تكامل Gemini API لكل ميزات الذكاء الاصطناعي عبر `google_generative_ai`
 - دعم خطوط Google Fonts وأنيميشن مكثفة
 

@@ -5,6 +5,9 @@ import '../features/home/home_screen.dart';
 import '../features/home/spreadsheet_editor_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/splash/splash_screen.dart';
+import '../features/settings/settings_screen.dart';
+import '../features/review/expert_review_screen.dart';
+import '../features/reports/reports_screen.dart';
 
 GoRouter buildRouter({required void Function() onToggleLanguage}) {
   return GoRouter(
@@ -18,6 +21,9 @@ GoRouter buildRouter({required void Function() onToggleLanguage}) {
         builder: (_, __) => HomeScreen(onToggleLanguage: onToggleLanguage),
       ),
       GoRoute(path: '/sheet', builder: (_, __) => const SpreadsheetEditorScreen()),
+      GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/expert-review', builder: (_, __) => const ExpertReviewScreen()),
     ],
   );
 }
