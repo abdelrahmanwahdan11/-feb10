@@ -113,6 +113,11 @@ class AppLocalizations {
       'undo': 'تراجع',
       'redo': 'إعادة',
       'formulaSupportTip': 'الصيغ المدعومة: SUM / AVG / MIN / MAX / مرجع خلية (مثال: =A1)',
+      'pasteTable': 'لصق جدول',
+      'clearSheet': 'مسح الورقة',
+      'confirmClearSheet': 'هل أنت متأكد من مسح جميع الخلايا؟',
+      'yes': 'نعم',
+      'pastedRange': 'تم لصق البيانات في الجدول',
     },
     'en': {
       'appTitle': 'Excel AI Assistant',
@@ -213,6 +218,11 @@ class AppLocalizations {
       'undo': 'Undo',
       'redo': 'Redo',
       'formulaSupportTip': 'Supported formulas: SUM / AVG / MIN / MAX / cell reference (e.g. =A1)',
+      'pasteTable': 'Paste Table',
+      'clearSheet': 'Clear Sheet',
+      'confirmClearSheet': 'Are you sure you want to clear all cells?',
+      'yes': 'Yes',
+      'pastedRange': 'Table data pasted successfully',
     },
   };
 

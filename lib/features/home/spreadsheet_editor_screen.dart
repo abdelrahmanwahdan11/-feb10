@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/app_localizations.dart';
 import 'excel_service.dart';
@@ -57,6 +58,63 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     }
   }
 
+  Future<void> _pasteTable() async {
+    final tr = AppLocalizations.of(context);
+    final data = await Clipboard.getData('text/plain');
+    final text = data?.text?.trim();
+    if (text == null || text.isEmpty) return;
+
+    final rows = text.split('\n').map((e) => e.split('\t')).toList();
+    setState(() {
+      _doc.snapshot();
+      while (_doc.rows < _selectedRow + rows.length) {
+        _doc.addRow();
+      }
+      var maxColsNeeded = _selectedCol;
+      for (final row in rows) {
+        final needed = _selectedCol + row.length;
+        if (needed > maxColsNeeded) maxColsNeeded = needed;
+      }
+      while (_doc.columns < maxColsNeeded) {
+        _doc.addColumn();
+      }
+
+      for (var r = 0; r < rows.length; r++) {
+        for (var c = 0; c < rows[r].length; c++) {
+          _doc.setValue(_selectedRow + r, _selectedCol + c, rows[r][c]);
+        }
+      }
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('pastedRange'))));
+  }
+
+  Future<void> _clearSheet() async {
+    final tr = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('clearSheet')),
+        content: Text(tr.t('confirmClearSheet')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr.t('yes'))),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    setState(() {
+      _doc.snapshot();
+      for (var r = 0; r < _doc.rows; r++) {
+        for (var c = 0; c < _doc.columns; c++) {
+          _doc.setValue(r, c, '');
+        }
+      }
+    });
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -81,6 +139,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
         actions: [
           IconButton(onPressed: _saveCsv, icon: const Icon(Icons.description_outlined), tooltip: tr.t('saveCsv')),
           IconButton(onPressed: _saveXlsx, icon: const Icon(Icons.grid_on_rounded), tooltip: tr.t('saveXlsx')),
+          IconButton(onPressed: _pasteTable, icon: const Icon(Icons.content_paste_rounded), tooltip: tr.t('pasteTable')),
+          IconButton(onPressed: _clearSheet, icon: const Icon(Icons.delete_sweep_rounded), tooltip: tr.t('clearSheet')),
           IconButton(
             onPressed: _doc.canUndo ? () => setState(() => _doc.undo()) : null,
             icon: const Icon(Icons.undo_rounded),
@@ -157,7 +217,13 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
                                   constraints: const BoxConstraints(minWidth: 110, maxWidth: 180),
                                   child: Text(display, overflow: TextOverflow.ellipsis),
                                 ),
-                                onTap: () => _editCell(r, c),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedRow = r;
+                                    _selectedCol = c;
+                                  });
+                                  _editCell(r, c);
+                                },
                               );
                             },
                           ),
