@@ -50,6 +50,22 @@ class SpreadsheetDocument {
     return true;
   }
 
+  bool insertRow(int rowIndex) {
+    if (rowIndex < 0 || rowIndex > rows) return false;
+    _cells.insert(rowIndex, List.generate(columns, (_) => ''));
+    rows += 1;
+    return true;
+  }
+
+  bool insertColumn(int colIndex) {
+    if (colIndex < 0 || colIndex > columns) return false;
+    for (final row in _cells) {
+      row.insert(colIndex, '');
+    }
+    columns += 1;
+    return true;
+  }
+
   String valueAt(int row, int col) => _cells[row][col];
 
   void setValue(int row, int col, String value) {
@@ -159,41 +175,69 @@ class SpreadsheetDocument {
     return replaced;
   }
 
-  String resolvedValue(int row, int col) {
+  String resolvedValue(int row, int col, {Set<String>? _visiting}) {
+    if (row < 0 || row >= rows || col < 0 || col >= columns) return '';
+    final visiting = _visiting ?? <String>{};
+    final key = '$row:$col';
+    if (visiting.contains(key)) return '#CYCLE';
+
+    visiting.add(key);
     final source = _cells[row][col].trim();
-    if (!source.startsWith('=')) return source;
-
-    final formula = source.substring(1).toUpperCase().trim();
-
-    if (formula.startsWith('SUM(') && formula.endsWith(')')) {
-      final expr = formula.substring(4, formula.length - 1);
-      return _rangeAggregate(expr, average: false);
+    if (!source.startsWith('=')) {
+      visiting.remove(key);
+      return source;
     }
 
-    if (formula.startsWith('AVG(') && formula.endsWith(')')) {
-      final expr = formula.substring(4, formula.length - 1);
-      return _rangeAggregate(expr, average: true);
+    final formulaText = source.substring(1).trim();
+    final upperFormula = formulaText.toUpperCase();
+
+    if (upperFormula.startsWith('SUM(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(4, upperFormula.length - 1);
+      final result = _rangeAggregate(expr, average: false, visiting: visiting);
+      visiting.remove(key);
+      return result;
     }
 
-    if (formula.startsWith('MIN(') && formula.endsWith(')')) {
-      final expr = formula.substring(4, formula.length - 1);
-      return _rangeMinMax(expr, minMode: true);
+    if (upperFormula.startsWith('AVG(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(4, upperFormula.length - 1);
+      final result = _rangeAggregate(expr, average: true, visiting: visiting);
+      visiting.remove(key);
+      return result;
     }
 
-    if (formula.startsWith('MAX(') && formula.endsWith(')')) {
-      final expr = formula.substring(4, formula.length - 1);
-      return _rangeMinMax(expr, minMode: false);
+    if (upperFormula.startsWith('MIN(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(4, upperFormula.length - 1);
+      final result = _rangeMinMax(expr, minMode: true, visiting: visiting);
+      visiting.remove(key);
+      return result;
     }
 
-    final ref = _cellFromRef(formula);
+    if (upperFormula.startsWith('MAX(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(4, upperFormula.length - 1);
+      final result = _rangeMinMax(expr, minMode: false, visiting: visiting);
+      visiting.remove(key);
+      return result;
+    }
+
+    final ref = _cellFromRef(upperFormula);
     if (ref != null) {
-      return _safeRawValue(ref.$1, ref.$2);
+      final result = resolvedValue(ref.$1, ref.$2, _visiting: visiting);
+      visiting.remove(key);
+      return result;
     }
 
+    final arithmetic = _evaluateExpression(formulaText, visiting: visiting);
+    if (arithmetic != null) {
+      final result = arithmetic.toStringAsFixed(arithmetic.truncateToDouble() == arithmetic ? 0 : 2);
+      visiting.remove(key);
+      return result;
+    }
+
+    visiting.remove(key);
     return '#N/A';
   }
 
-  String _rangeAggregate(String expr, {required bool average}) {
+  String _rangeAggregate(String expr, {required bool average, required Set<String> visiting}) {
     final coords = _rangeBounds(expr);
     if (coords == null) return '#ERR';
     final (minRow, maxRow, minCol, maxCol) = coords;
@@ -203,7 +247,7 @@ class SpreadsheetDocument {
     for (var r = minRow; r <= maxRow; r++) {
       for (var c = minCol; c <= maxCol; c++) {
         if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
-        total += double.tryParse(_safeRawValue(r, c)) ?? 0;
+        total += _numericCellValue(r, c, visiting) ?? 0;
         count += 1;
       }
     }
@@ -217,7 +261,7 @@ class SpreadsheetDocument {
     return total.toStringAsFixed(total.truncateToDouble() == total ? 0 : 2);
   }
 
-  String _rangeMinMax(String expr, {required bool minMode}) {
+  String _rangeMinMax(String expr, {required bool minMode, required Set<String> visiting}) {
     final coords = _rangeBounds(expr);
     if (coords == null) return '#ERR';
     final (minRow, maxRow, minCol, maxCol) = coords;
@@ -226,7 +270,7 @@ class SpreadsheetDocument {
     for (var r = minRow; r <= maxRow; r++) {
       for (var c = minCol; c <= maxCol; c++) {
         if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
-        final val = double.tryParse(_safeRawValue(r, c));
+        final val = _numericCellValue(r, c, visiting);
         if (val == null) continue;
         if (best == null) {
           best = val;
@@ -255,10 +299,9 @@ class SpreadsheetDocument {
     final maxCol = a.$2 > b.$2 ? a.$2 : b.$2;
     return (minRow, maxRow, minCol, maxCol);
   }
-
-  String _safeRawValue(int row, int col) {
-    if (row < 0 || row >= rows || col < 0 || col >= columns) return '';
-    return _cells[row][col];
+  double? _numericCellValue(int row, int col, Set<String> visiting) {
+    final value = resolvedValue(row, col, _visiting: Set<String>.from(visiting));
+    return double.tryParse(value);
   }
 
   (int, int)? _cellFromRef(String ref) {
@@ -290,5 +333,169 @@ class SpreadsheetDocument {
       ..addAll(_clone(matrix));
     rows = _cells.length;
     columns = _cells.isEmpty ? 0 : _cells.first.length;
+  }
+
+  double? _evaluateExpression(String expr, {required Set<String> visiting}) {
+    final parser = _ExpressionParser(
+      expr,
+      resolveReference: (ref) {
+        final cell = _cellFromRef(ref.toUpperCase());
+        if (cell == null) return null;
+        return _numericCellValue(cell.$1, cell.$2, visiting);
+      },
+    );
+    return parser.parse();
+  }
+}
+
+class _ExpressionParser {
+  _ExpressionParser(this._source, {required this.resolveReference});
+
+  final String _source;
+  final double? Function(String ref) resolveReference;
+  int _index = 0;
+
+  double? parse() {
+    final value = _parseExpression();
+    _skipWhitespace();
+    if (value == null || _index != _source.length) return null;
+    return value;
+  }
+
+  double? _parseExpression() {
+    var left = _parseTerm();
+    if (left == null) return null;
+
+    while (true) {
+      _skipWhitespace();
+      if (_match('+')) {
+        final right = _parseTerm();
+        if (right == null) return null;
+        left += right;
+      } else if (_match('-')) {
+        final right = _parseTerm();
+        if (right == null) return null;
+        left -= right;
+      } else {
+        break;
+      }
+    }
+
+    return left;
+  }
+
+  double? _parseTerm() {
+    var left = _parseFactor();
+    if (left == null) return null;
+
+    while (true) {
+      _skipWhitespace();
+      if (_match('*')) {
+        final right = _parseFactor();
+        if (right == null) return null;
+        left *= right;
+      } else if (_match('/')) {
+        final right = _parseFactor();
+        if (right == null || right == 0) return null;
+        left /= right;
+      } else {
+        break;
+      }
+    }
+    return left;
+  }
+
+  double? _parseFactor() {
+    _skipWhitespace();
+
+    if (_match('+')) return _parseFactor();
+    if (_match('-')) {
+      final value = _parseFactor();
+      return value == null ? null : -value;
+    }
+
+    if (_match('(')) {
+      final value = _parseExpression();
+      _skipWhitespace();
+      if (!_match(')')) return null;
+      return value;
+    }
+
+    final number = _parseNumber();
+    if (number != null) return number;
+
+    final reference = _parseReference();
+    if (reference != null) return resolveReference(reference);
+
+    return null;
+  }
+
+  double? _parseNumber() {
+    _skipWhitespace();
+    final start = _index;
+    var sawDigit = false;
+    var sawDot = false;
+    while (_index < _source.length) {
+      final ch = _source[_index];
+      final isDigit = ch.codeUnitAt(0) >= 48 && ch.codeUnitAt(0) <= 57;
+      if (isDigit) {
+        sawDigit = true;
+        _index++;
+      } else if (ch == '.' && !sawDot) {
+        sawDot = true;
+        _index++;
+      } else {
+        break;
+      }
+    }
+
+    if (!sawDigit) {
+      _index = start;
+      return null;
+    }
+    return double.tryParse(_source.substring(start, _index));
+  }
+
+  String? _parseReference() {
+    _skipWhitespace();
+    final start = _index;
+    while (_index < _source.length && _isLetter(_source[_index])) {
+      _index++;
+    }
+    if (_index == start) return null;
+
+    final digitsStart = _index;
+    while (_index < _source.length && _isDigit(_source[_index])) {
+      _index++;
+    }
+    if (_index == digitsStart) {
+      _index = start;
+      return null;
+    }
+    return _source.substring(start, _index);
+  }
+
+  bool _isLetter(String ch) {
+    final code = ch.toUpperCase().codeUnitAt(0);
+    return code >= 65 && code <= 90;
+  }
+
+  bool _isDigit(String ch) {
+    final code = ch.codeUnitAt(0);
+    return code >= 48 && code <= 57;
+  }
+
+  bool _match(String char) {
+    if (_index < _source.length && _source[_index] == char) {
+      _index++;
+      return true;
+    }
+    return false;
+  }
+
+  void _skipWhitespace() {
+    while (_index < _source.length && _source[_index].trim().isEmpty) {
+      _index++;
+    }
   }
 }

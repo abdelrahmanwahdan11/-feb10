@@ -313,6 +313,73 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     });
   }
 
+
+
+  Future<void> _insertRowBelow() async {
+    setState(() {
+      _doc.snapshot();
+      _doc.insertRow(_selectedRow + 1);
+      _selectedRow += 1;
+    });
+  }
+
+  Future<void> _insertColumnRight() async {
+    setState(() {
+      _doc.snapshot();
+      _doc.insertColumn(_selectedCol + 1);
+      _selectedCol += 1;
+    });
+  }
+
+  Future<void> _goToCell() async {
+    final tr = AppLocalizations.of(context);
+    final ctrl = TextEditingController(text: '${_colName(_selectedCol)}${_selectedRow + 1}');
+    final target = await showDialog<(int, int)>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('goToCell')),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(hintText: 'A1'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(
+            onPressed: () {
+              final match = RegExp(r'^([A-Za-z]+)(\d+)$').firstMatch(ctrl.text.trim());
+              if (match == null) {
+                Navigator.pop(context);
+                return;
+              }
+              final letters = match.group(1)!.toUpperCase();
+              final row = int.tryParse(match.group(2)!);
+              if (row == null) {
+                Navigator.pop(context);
+                return;
+              }
+              var col = 0;
+              for (final code in letters.codeUnits) {
+                col = col * 26 + (code - 64);
+              }
+              Navigator.pop(context, (row - 1, col - 1));
+            },
+            child: Text(tr.t('go')),
+          ),
+        ],
+      ),
+    );
+
+    if (target == null) return;
+    final r = target.$1;
+    final c = target.$2;
+    if (r < 0 || c < 0 || r >= _doc.rows || c >= _doc.columns) return;
+    setState(() {
+      _selectedRow = r;
+      _selectedCol = c;
+    });
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -342,6 +409,9 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
+          IconButton(onPressed: _insertRowBelow, icon: const Icon(Icons.playlist_add_rounded), tooltip: tr.t('insertRowBelow')),
+          IconButton(onPressed: _insertColumnRight, icon: const Icon(Icons.add_box_outlined), tooltip: tr.t('insertColumnRight')),
+          IconButton(onPressed: _goToCell, icon: const Icon(Icons.my_location_rounded), tooltip: tr.t('goToCell')),
           IconButton(onPressed: _deleteSelectedRow, icon: const Icon(Icons.remove_circle_outline_rounded), tooltip: tr.t('deleteRow')),
           IconButton(onPressed: _deleteSelectedColumn, icon: const Icon(Icons.view_column_outlined), tooltip: tr.t('deleteColumn')),
           IconButton(onPressed: _findInSheet, icon: const Icon(Icons.search_rounded), tooltip: tr.t('findInSheet')),
@@ -395,7 +465,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(
