@@ -140,6 +140,10 @@ class AppLocalizations {
       'noMatches': 'لا توجد نتائج مطابقة',
       'matchesFound': 'عدد النتائج',
       'replacedCount': 'عدد الخلايا المستبدلة',
+      'deleteRow': 'حذف الصف',
+      'deleteColumn': 'حذف العمود',
+      'confirmDeleteRow': 'هل تريد حذف الصف المحدد؟',
+      'confirmDeleteColumn': 'هل تريد حذف العمود المحدد؟',
     },
     'en': {
       'appTitle': 'Excel AI Assistant',
@@ -267,6 +271,10 @@ class AppLocalizations {
       'noMatches': 'No matches found',
       'matchesFound': 'Matches found',
       'replacedCount': 'Replaced cells',
+      'deleteRow': 'Delete Row',
+      'deleteColumn': 'Delete Column',
+      'confirmDeleteRow': 'Do you want to delete the selected row?',
+      'confirmDeleteColumn': 'Do you want to delete the selected column?',
     },
   };
 

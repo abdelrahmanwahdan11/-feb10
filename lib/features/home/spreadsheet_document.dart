@@ -34,6 +34,22 @@ class SpreadsheetDocument {
     return true;
   }
 
+  bool deleteRow(int rowIndex) {
+    if (rows <= 1 || rowIndex < 0 || rowIndex >= rows) return false;
+    _cells.removeAt(rowIndex);
+    rows -= 1;
+    return true;
+  }
+
+  bool deleteColumn(int colIndex) {
+    if (columns <= 1 || colIndex < 0 || colIndex >= columns) return false;
+    for (final row in _cells) {
+      row.removeAt(colIndex);
+    }
+    columns -= 1;
+    return true;
+  }
+
   String valueAt(int row, int col) => _cells[row][col];
 
   void setValue(int row, int col, String value) {
@@ -84,7 +100,6 @@ class SpreadsheetDocument {
     columns += 1;
   }
 
-
   ({double? min, double? max, double? avg, int count}) columnStats(int col, {bool skipHeader = true}) {
     if (col < 0 || col >= columns) return (min: null, max: null, avg: null, count: 0);
     final start = skipHeader ? 1 : 0;
@@ -105,7 +120,6 @@ class SpreadsheetDocument {
     final avg = count == 0 ? null : total / count;
     return (min: min, max: max, avg: avg, count: count);
   }
-
 
   List<(int, int)> findMatches(String query, {bool caseSensitive = false}) {
     final q = caseSensitive ? query : query.toLowerCase();
@@ -262,7 +276,6 @@ class SpreadsheetDocument {
     }
     return (rowRef - 1, col - 1);
   }
-
 
   String _replaceCaseInsensitive(String source, String find, String replace) {
     final escaped = RegExp.escape(find);

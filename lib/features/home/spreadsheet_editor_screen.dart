@@ -117,7 +117,6 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
   }
 
 
-
   Future<void> _fillDownFromSelection() async {
     final tr = AppLocalizations.of(context);
     final ctrl = TextEditingController(text: '${_selectedRow + 1}');
@@ -158,7 +157,6 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     });
   }
 
-
   Future<void> _showColumnStats() async {
     final tr = AppLocalizations.of(context);
     final stats = _doc.columnStats(_selectedCol, skipHeader: true);
@@ -194,7 +192,6 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
       _selectedRow += 1;
     });
   }
-
 
   Future<void> _findInSheet() async {
     final tr = AppLocalizations.of(context);
@@ -272,6 +269,50 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     );
   }
 
+  Future<void> _deleteSelectedRow() async {
+    final tr = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('deleteRow')),
+        content: Text(tr.t('confirmDeleteRow')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr.t('yes'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() {
+      _doc.snapshot();
+      final deleted = _doc.deleteRow(_selectedRow);
+      if (deleted && _selectedRow >= _doc.rows) _selectedRow = _doc.rows - 1;
+    });
+  }
+
+  Future<void> _deleteSelectedColumn() async {
+    final tr = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('deleteColumn')),
+        content: Text(tr.t('confirmDeleteColumn')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr.t('yes'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() {
+      _doc.snapshot();
+      final deleted = _doc.deleteColumn(_selectedCol);
+      if (deleted && _selectedCol >= _doc.columns) _selectedCol = _doc.columns - 1;
+    });
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -301,6 +342,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
+          IconButton(onPressed: _deleteSelectedRow, icon: const Icon(Icons.remove_circle_outline_rounded), tooltip: tr.t('deleteRow')),
+          IconButton(onPressed: _deleteSelectedColumn, icon: const Icon(Icons.view_column_outlined), tooltip: tr.t('deleteColumn')),
           IconButton(onPressed: _findInSheet, icon: const Icon(Icons.search_rounded), tooltip: tr.t('findInSheet')),
           IconButton(onPressed: _replaceInSheet, icon: const Icon(Icons.find_replace_rounded), tooltip: tr.t('replaceInSheet')),
           IconButton(onPressed: _clearSheet, icon: const Icon(Icons.delete_sweep_rounded), tooltip: tr.t('clearSheet')),
