@@ -66,6 +66,50 @@ class SpreadsheetDocument {
     return true;
   }
 
+  void ensureSize({required int minRows, required int minColumns}) {
+    while (rows < minRows) {
+      addRow();
+    }
+    while (columns < minColumns) {
+      addColumn();
+    }
+  }
+
+  int trimTrailingEmpty({int keepAtLeastRows = 1, int keepAtLeastColumns = 1}) {
+    var removed = 0;
+
+    while (rows > keepAtLeastRows && _rowIsEmpty(rows - 1)) {
+      _cells.removeLast();
+      rows -= 1;
+      removed += 1;
+    }
+
+    while (columns > keepAtLeastColumns && _columnIsEmpty(columns - 1)) {
+      for (final row in _cells) {
+        row.removeLast();
+      }
+      columns -= 1;
+      removed += 1;
+    }
+
+    return removed;
+  }
+
+  List<String> formulaDiagnostics() {
+    final issues = <String>[];
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < columns; c++) {
+        final raw = _cells[r][c].trim();
+        if (!raw.startsWith('=')) continue;
+        final resolved = resolvedValue(r, c);
+        if (resolved.startsWith('#')) {
+          issues.add('${_colName(c)}${r + 1}: $resolved');
+        }
+      }
+    }
+    return issues;
+  }
+
   String valueAt(int row, int col) => _cells[row][col];
 
   void setValue(int row, int col, String value) {
@@ -219,6 +263,20 @@ class SpreadsheetDocument {
       return result;
     }
 
+    if (upperFormula.startsWith('COUNT(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(6, upperFormula.length - 1);
+      final result = _rangeCount(expr, visiting: visiting);
+      visiting.remove(key);
+      return result;
+    }
+
+    if (upperFormula.startsWith('MEDIAN(') && upperFormula.endsWith(')')) {
+      final expr = upperFormula.substring(7, upperFormula.length - 1);
+      final result = _rangeMedian(expr, visiting: visiting);
+      visiting.remove(key);
+      return result;
+    }
+
     final ref = _cellFromRef(upperFormula);
     if (ref != null) {
       final result = resolvedValue(ref.$1, ref.$2, _visiting: visiting);
@@ -286,6 +344,42 @@ class SpreadsheetDocument {
     return best.toStringAsFixed(best.truncateToDouble() == best ? 0 : 2);
   }
 
+  String _rangeCount(String expr, {required Set<String> visiting}) {
+    final coords = _rangeBounds(expr);
+    if (coords == null) return '#ERR';
+    final (minRow, maxRow, minCol, maxCol) = coords;
+
+    var count = 0;
+    for (var r = minRow; r <= maxRow; r++) {
+      for (var c = minCol; c <= maxCol; c++) {
+        if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
+        if (_numericCellValue(r, c, visiting) != null) count += 1;
+      }
+    }
+    return '$count';
+  }
+
+  String _rangeMedian(String expr, {required Set<String> visiting}) {
+    final coords = _rangeBounds(expr);
+    if (coords == null) return '#ERR';
+    final (minRow, maxRow, minCol, maxCol) = coords;
+
+    final values = <double>[];
+    for (var r = minRow; r <= maxRow; r++) {
+      for (var c = minCol; c <= maxCol; c++) {
+        if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
+        final v = _numericCellValue(r, c, visiting);
+        if (v != null) values.add(v);
+      }
+    }
+    if (values.isEmpty) return '0';
+
+    values.sort();
+    final mid = values.length ~/ 2;
+    final median = values.length.isOdd ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+    return median.toStringAsFixed(median.truncateToDouble() == median ? 0 : 2);
+  }
+
   (int, int, int, int)? _rangeBounds(String expr) {
     final parts = expr.split(':');
     if (parts.length != 2) return null;
@@ -299,6 +393,27 @@ class SpreadsheetDocument {
     final maxCol = a.$2 > b.$2 ? a.$2 : b.$2;
     return (minRow, maxRow, minCol, maxCol);
   }
+
+  bool _rowIsEmpty(int rowIndex) => _cells[rowIndex].every((cell) => cell.trim().isEmpty);
+
+  bool _columnIsEmpty(int colIndex) {
+    for (final row in _cells) {
+      if (row[colIndex].trim().isNotEmpty) return false;
+    }
+    return true;
+  }
+
+  String _colName(int index) {
+    var n = index + 1;
+    var name = '';
+    while (n > 0) {
+      final rem = (n - 1) % 26;
+      name = String.fromCharCode(65 + rem) + name;
+      n = (n - 1) ~/ 26;
+    }
+    return name;
+  }
+
   double? _numericCellValue(int row, int col, Set<String> visiting) {
     final value = resolvedValue(row, col, _visiting: Set<String>.from(visiting));
     return double.tryParse(value);

@@ -341,7 +341,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: InputDecoration(hintText: 'A1'),
+          decoration: const InputDecoration(hintText: 'A1'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
@@ -373,11 +373,67 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     if (target == null) return;
     final r = target.$1;
     final c = target.$2;
-    if (r < 0 || c < 0 || r >= _doc.rows || c >= _doc.columns) return;
+    if (r < 0 || c < 0) return;
+
+    if (r >= _doc.rows || c >= _doc.columns) {
+      final expand = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(tr.t('goToCell')),
+          content: Text(tr.t('autoExpandPrompt')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr.t('cancel'))),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr.t('yes'))),
+          ],
+        ),
+      );
+      if (expand != true) return;
+
+      setState(() {
+        _doc.snapshot();
+        _doc.ensureSize(minRows: r + 1, minColumns: c + 1);
+      });
+    }
+
     setState(() {
       _selectedRow = r;
       _selectedCol = c;
     });
+  }
+
+  Future<void> _trimTrailingEmpty() async {
+    final tr = AppLocalizations.of(context);
+    var removed = 0;
+    setState(() {
+      _doc.snapshot();
+      removed = _doc.trimTrailingEmpty();
+      if (_selectedRow >= _doc.rows) _selectedRow = _doc.rows - 1;
+      if (_selectedCol >= _doc.columns) _selectedCol = _doc.columns - 1;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr.t('sheetTrimmed')}: $removed')),
+    );
+  }
+
+  Future<void> _runFormulaAudit() async {
+    final tr = AppLocalizations.of(context);
+    final issues = _doc.formulaDiagnostics();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('formulaAudit')),
+        content: SizedBox(
+          width: 420,
+          child: issues.isEmpty
+              ? Text(tr.t('formulaAuditClean'))
+              : SingleChildScrollView(child: Text(issues.join('\n'))),
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveCsv() async {
@@ -412,6 +468,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _insertRowBelow, icon: const Icon(Icons.playlist_add_rounded), tooltip: tr.t('insertRowBelow')),
           IconButton(onPressed: _insertColumnRight, icon: const Icon(Icons.add_box_outlined), tooltip: tr.t('insertColumnRight')),
           IconButton(onPressed: _goToCell, icon: const Icon(Icons.my_location_rounded), tooltip: tr.t('goToCell')),
+          IconButton(onPressed: _trimTrailingEmpty, icon: const Icon(Icons.cleaning_services_outlined), tooltip: tr.t('trimSheet')),
+          IconButton(onPressed: _runFormulaAudit, icon: const Icon(Icons.rule_folder_outlined), tooltip: tr.t('formulaAudit')),
           IconButton(onPressed: _deleteSelectedRow, icon: const Icon(Icons.remove_circle_outline_rounded), tooltip: tr.t('deleteRow')),
           IconButton(onPressed: _deleteSelectedColumn, icon: const Icon(Icons.view_column_outlined), tooltip: tr.t('deleteColumn')),
           IconButton(onPressed: _findInSheet, icon: const Icon(Icons.search_rounded), tooltip: tr.t('findInSheet')),
@@ -465,7 +523,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(
