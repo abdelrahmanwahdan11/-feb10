@@ -84,6 +84,28 @@ class SpreadsheetDocument {
     columns += 1;
   }
 
+
+  ({double? min, double? max, double? avg, int count}) columnStats(int col, {bool skipHeader = true}) {
+    if (col < 0 || col >= columns) return (min: null, max: null, avg: null, count: 0);
+    final start = skipHeader ? 1 : 0;
+    double? min;
+    double? max;
+    double total = 0;
+    int count = 0;
+
+    for (var r = start; r < rows; r++) {
+      final val = double.tryParse(_cells[r][col]);
+      if (val == null) continue;
+      min = min == null ? val : (val < min ? val : min);
+      max = max == null ? val : (val > max ? val : max);
+      total += val;
+      count += 1;
+    }
+
+    final avg = count == 0 ? null : total / count;
+    return (min: min, max: max, avg: avg, count: count);
+  }
+
   String resolvedValue(int row, int col) {
     final source = _cells[row][col].trim();
     if (!source.startsWith('=')) return source;

@@ -125,6 +125,13 @@ class AppLocalizations {
       'sortState': 'وضع الفرز',
       'ascending': 'تصاعدي',
       'descending': 'تنازلي',
+      'columnStats': 'إحصائيات العمود',
+      'duplicateRow': 'تكرار الصف',
+      'count': 'العدد',
+      'minValue': 'أدنى قيمة',
+      'maxValue': 'أعلى قيمة',
+      'avgValue': 'المتوسط',
+      'ok': 'حسنًا',
     },
     'en': {
       'appTitle': 'Excel AI Assistant',
@@ -237,6 +244,13 @@ class AppLocalizations {
       'sortState': 'Sort mode',
       'ascending': 'Ascending',
       'descending': 'Descending',
+      'columnStats': 'Column Stats',
+      'duplicateRow': 'Duplicate Row',
+      'count': 'Count',
+      'minValue': 'Min Value',
+      'maxValue': 'Max Value',
+      'avgValue': 'Average',
+      'ok': 'OK',
     },
   };
 

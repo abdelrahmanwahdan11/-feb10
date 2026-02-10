@@ -158,6 +158,43 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     });
   }
 
+
+  Future<void> _showColumnStats() async {
+    final tr = AppLocalizations.of(context);
+    final stats = _doc.columnStats(_selectedCol, skipHeader: true);
+    String fmt(double? v) => v == null ? '-' : v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 2);
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('columnStats')} ${_colName(_selectedCol)}'),
+        content: Text(
+          '${tr.t('count')}: ${stats.count}\n${tr.t('minValue')}: ${fmt(stats.min)}\n${tr.t('maxValue')}: ${fmt(stats.max)}\n${tr.t('avgValue')}: ${fmt(stats.avg)}',
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
+  }
+
+  void _duplicateSelectedRow() {
+    if (_selectedRow < 0 || _selectedRow >= _doc.rows) return;
+    setState(() {
+      _doc.snapshot();
+      _doc.addRow();
+      for (var r = _doc.rows - 1; r > _selectedRow + 1; r--) {
+        for (var c = 0; c < _doc.columns; c++) {
+          _doc.setValue(r, c, _doc.valueAt(r - 1, c));
+        }
+      }
+      for (var c = 0; c < _doc.columns; c++) {
+        _doc.setValue(_selectedRow + 1, c, _doc.valueAt(_selectedRow, c));
+      }
+      _selectedRow += 1;
+    });
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -185,6 +222,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _pasteTable, icon: const Icon(Icons.content_paste_rounded), tooltip: tr.t('pasteTable')),
           IconButton(onPressed: _fillDownFromSelection, icon: const Icon(Icons.vertical_align_bottom_rounded), tooltip: tr.t('fillDown')),
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
+          IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
+          IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
           IconButton(onPressed: _clearSheet, icon: const Icon(Icons.delete_sweep_rounded), tooltip: tr.t('clearSheet')),
           IconButton(
             onPressed: _doc.canUndo ? () => setState(() => _doc.undo()) : null,
