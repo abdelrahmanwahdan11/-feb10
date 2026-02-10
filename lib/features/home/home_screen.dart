@@ -58,6 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _result = text);
   }
 
+  bool _ensureAuthorized() {
+    final tr = AppLocalizations.of(context);
+    if ((_authMode ?? '').isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('authRequired'))));
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _pickExcelFile() async {
     final tr = AppLocalizations.of(context);
     try {
@@ -69,9 +78,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final file = res.files.single;
       final preview = await _excelService.previewFile(file);
+      final previewText = switch (preview.status) {
+        PreviewStatus.pathMissing => tr.t('previewPathMissing'),
+        PreviewStatus.csvEmpty => tr.t('previewCsvEmpty'),
+        PreviewStatus.spreadsheetSelected => tr.t('previewSpreadsheetSelected'),
+        PreviewStatus.unsupported => tr.t('previewUnsupported'),
+        PreviewStatus.previewData => preview.content,
+      };
+
       setState(() {
         _fileName = file.name;
-        _result = '${tr.t('filePreview')}:\n$preview';
+        _result = '${tr.t('filePreview')}:\n$previewText';
       });
     } catch (_) {
       _setResult(tr.t('unexpectedError'));
@@ -80,10 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _runAiFlow() async {
     final tr = AppLocalizations.of(context);
-    if ((_authMode ?? '').isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('authRequired'))));
-      return;
-    }
+    if (!_ensureAuthorized()) return;
     if (_promptCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('emptyPrompt'))));
       return;
@@ -113,6 +127,7 @@ Please return:
 
   Future<void> _runWebInsights() async {
     final tr = AppLocalizations.of(context);
+    if (!_ensureAuthorized()) return;
     final query = _promptCtrl.text.trim();
     if (query.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('emptyPrompt'))));
@@ -138,6 +153,7 @@ Please return:
 
   Future<void> _runAutopilot() async {
     final tr = AppLocalizations.of(context);
+    if (!_ensureAuthorized()) return;
     if (_promptCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('emptyPrompt'))));
       return;

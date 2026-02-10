@@ -66,6 +66,10 @@ class AppLocalizations {
       'copied': 'تم نسخ الناتج',
       'copyOutput': 'نسخ الناتج',
       'clearOutput': 'مسح الناتج',
+      'previewPathMissing': 'مسار الملف غير متاح.',
+      'previewCsvEmpty': 'ملف CSV فارغ.',
+      'previewSpreadsheetSelected': 'تم اختيار ملف جدول بنجاح. يمكن إضافة معاينة تفصيلية لاحقاً.',
+      'previewUnsupported': 'صيغة الملف غير مدعومة.',
     },
     'en': {
       'appTitle': 'Excel AI Assistant',
@@ -119,6 +123,10 @@ class AppLocalizations {
       'copied': 'Output copied',
       'copyOutput': 'Copy Output',
       'clearOutput': 'Clear Output',
+      'previewPathMissing': 'File path is not available.',
+      'previewCsvEmpty': 'CSV file is empty.',
+      'previewSpreadsheetSelected': 'Spreadsheet selected successfully. Detailed preview can be added in the next phase.',
+      'previewUnsupported': 'Unsupported file format.',
     },
   };
 

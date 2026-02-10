@@ -4,6 +4,21 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 
+enum PreviewStatus {
+  pathMissing,
+  csvEmpty,
+  spreadsheetSelected,
+  unsupported,
+  previewData,
+}
+
+class FilePreviewResult {
+  const FilePreviewResult({required this.status, required this.content});
+
+  final PreviewStatus status;
+  final String content;
+}
+
 class ExcelService {
   Future<String> createDemoReport() async {
     final workbook = Workbook();
@@ -32,22 +47,26 @@ class ExcelService {
     return file.path;
   }
 
-  Future<String> previewFile(PlatformFile file) async {
+  Future<FilePreviewResult> previewFile(PlatformFile file) async {
     final ext = file.extension?.toLowerCase();
     final path = file.path;
 
-    if (path == null) return 'File path not available.';
+    if (path == null) {
+      return const FilePreviewResult(status: PreviewStatus.pathMissing, content: '');
+    }
 
     if (ext == 'csv') {
       final lines = await File(path).readAsLines();
-      if (lines.isEmpty) return 'CSV file is empty.';
-      return lines.take(6).join('\n');
+      if (lines.isEmpty) {
+        return const FilePreviewResult(status: PreviewStatus.csvEmpty, content: '');
+      }
+      return FilePreviewResult(status: PreviewStatus.previewData, content: lines.take(6).join('\n'));
     }
 
     if (ext == 'xlsx' || ext == 'xls' || ext == 'xlsm') {
-      return 'Spreadsheet selected successfully. Detailed preview can be added in next phase.';
+      return const FilePreviewResult(status: PreviewStatus.spreadsheetSelected, content: '');
     }
 
-    return 'Unsupported file format.';
+    return const FilePreviewResult(status: PreviewStatus.unsupported, content: '');
   }
 }
