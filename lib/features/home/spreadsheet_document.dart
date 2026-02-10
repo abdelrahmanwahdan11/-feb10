@@ -360,6 +360,29 @@ class SpreadsheetDocument {
     return out;
   }
 
+  ({double requiredX, double slope, double intercept})? goalSeekLinear({
+    required int xCol,
+    required int yCol,
+    required double targetY,
+    bool skipHeader = true,
+  }) {
+    final line = trendLine(xCol, yCol, skipHeader: skipHeader);
+    if (line.samples < 2 || line.slope == 0) return null;
+    final requiredX = (targetY - line.intercept) / line.slope;
+    return (requiredX: requiredX, slope: line.slope, intercept: line.intercept);
+  }
+
+  List<(double x, double y)> whatIfLinearScenario({
+    required int xCol,
+    required int yCol,
+    required List<double> xValues,
+    bool skipHeader = true,
+  }) {
+    final line = trendLine(xCol, yCol, skipHeader: skipHeader);
+    if (line.samples < 2) return [];
+    return xValues.map((x) => (x: x, y: line.slope * x + line.intercept)).toList();
+  }
+
   List<(int, int)> findMatches(String query, {bool caseSensitive = false}) {
     final q = caseSensitive ? query : query.toLowerCase();
     if (q.trim().isEmpty) return [];

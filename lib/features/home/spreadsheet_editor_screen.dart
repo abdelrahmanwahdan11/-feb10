@@ -566,6 +566,93 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     );
   }
 
+
+  Future<void> _runGoalSeek() async {
+    final tr = AppLocalizations.of(context);
+    final targetCtrl = TextEditingController();
+    final target = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('goalSeek')),
+        content: TextField(
+          controller: targetCtrl,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(hintText: tr.t('goalSeekHint')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, double.tryParse(targetCtrl.text)), child: Text(tr.t('apply'))),
+        ],
+      ),
+    );
+    if (target == null) return;
+
+    final result = _doc.goalSeekLinear(xCol: 0, yCol: _selectedCol, targetY: target, skipHeader: true);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('goalSeek')} ${_colName(_selectedCol)}'),
+        content: Text(
+          result == null
+              ? tr.t('insufficientData')
+              : '${tr.t('requiredX')}: ${result.requiredX.toStringAsFixed(3)}\n${tr.t('trendSlope')}: ${result.slope.toStringAsFixed(3)}\n${tr.t('trendIntercept')}: ${result.intercept.toStringAsFixed(3)}',
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _runWhatIfScenario() async {
+    final tr = AppLocalizations.of(context);
+    final ctrl = TextEditingController(text: '10,20,30');
+    final values = await showDialog<List<double>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('whatIfScenario')),
+        content: TextField(
+          controller: ctrl,
+          decoration: InputDecoration(hintText: tr.t('scenarioHint')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(
+            onPressed: () {
+              final vals = ctrl.text
+                  .split(',')
+                  .map((e) => double.tryParse(e.trim()))
+                  .whereType<double>()
+                  .toList();
+              Navigator.pop(context, vals);
+            },
+            child: Text(tr.t('apply')),
+          ),
+        ],
+      ),
+    );
+
+    if (values == null || values.isEmpty) return;
+    final scenarios = _doc.whatIfLinearScenario(xCol: 0, yCol: _selectedCol, xValues: values, skipHeader: true);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('whatIfScenario')} ${_colName(_selectedCol)}'),
+        content: SizedBox(
+          width: 420,
+          child: Text(
+            scenarios.isEmpty
+                ? tr.t('insufficientData')
+                : scenarios.map((s) => 'X=${s.x.toStringAsFixed(2)} → Y=${s.y.toStringAsFixed(2)}').join('\n'),
+          ),
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openFormulaAssistant() async {
     final tr = AppLocalizations.of(context);
     final templates = <String>[
@@ -642,6 +729,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _showColumnDeepStats, icon: const Icon(Icons.insights_rounded), tooltip: tr.t('columnDeepStats')),
           IconButton(onPressed: _showTrendInsights, icon: const Icon(Icons.show_chart_rounded), tooltip: tr.t('trendInsights')),
+          IconButton(onPressed: _runGoalSeek, icon: const Icon(Icons.track_changes_rounded), tooltip: tr.t('goalSeek')),
+          IconButton(onPressed: _runWhatIfScenario, icon: const Icon(Icons.science_outlined), tooltip: tr.t('whatIfScenario')),
           IconButton(onPressed: _applyMovingAverageToSelected, icon: const Icon(Icons.multiline_chart_rounded), tooltip: tr.t('movingAverage')),
           IconButton(onPressed: _normalizeSelectedColumn, icon: const Icon(Icons.auto_graph_rounded), tooltip: tr.t('normalizeColumn')),
           IconButton(onPressed: _detectOutliers, icon: const Icon(Icons.warning_amber_rounded), tooltip: tr.t('outlierDetection')),
@@ -706,7 +795,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('outlierTip')} | ${tr.t('trendTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('outlierTip')} | ${tr.t('trendTip')} | ${tr.t('scenarioTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(
