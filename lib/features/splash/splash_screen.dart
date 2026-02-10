@@ -17,17 +17,34 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   final _store = SessionStore();
 
+  static const Set<String> _restorableRoutes = {
+    '/home',
+    '/reports',
+    '/sheet',
+    '/templates',
+    '/progress',
+    '/dashboard',
+    '/automation',
+    '/data-catalog',
+    '/api-keys',
+    '/expert-review',
+    '/help-center',
+  };
+
   @override
   void initState() {
     super.initState();
     Timer(const Duration(seconds: 2), () async {
       final seen = await _store.hasSeenOnboarding();
       final authMode = await _store.getAuthMode();
+      final lastRoute = await _store.getLastVisitedRoute();
       if (!mounted) return;
       if (!seen) {
         context.go('/onboarding');
       } else if (authMode == null) {
         context.go('/auth');
+      } else if (lastRoute != null && _restorableRoutes.contains(lastRoute)) {
+        context.go(lastRoute);
       } else {
         context.go('/home');
       }

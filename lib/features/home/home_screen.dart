@@ -70,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _promptCtrl.removeListener(_persistPromptDraft);
     _promptCtrl.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -137,7 +138,11 @@ Please return:
 4) Final report structure
 ''';
 
-      final output = await _gemini.runPrompt(prompt, missingKeyMessage: tr.t('geminiMissing'));
+      final output = await _gemini.runPrompt(
+        prompt,
+        missingKeyMessage: tr.t('geminiMissing'),
+        fallbackErrorMessage: tr.t('aiFailed'),
+      );
       _setResult(output);
       await _store.incrementIntPref('progress_ai_runs');
     } catch (_) {
@@ -187,6 +192,7 @@ Please return:
       final aiPlan = await _gemini.runPrompt(
         'Create an autonomous Excel workflow plan for: ${_promptCtrl.text}',
         missingKeyMessage: tr.t('geminiMissing'),
+        fallbackErrorMessage: tr.t('aiFailed'),
       );
       final reportPath = await _excelService.createDemoReport();
       _setResult('${tr.t('autopilotDone')}\n\n$aiPlan\n\n${tr.t('generatedFilePath')}:\n$reportPath');
@@ -209,6 +215,7 @@ Please return:
   Future<void> _signOut() async {
     await _store.signOut();
     if (!mounted) return;
+    _setResult('');
     context.go('/auth');
   }
 

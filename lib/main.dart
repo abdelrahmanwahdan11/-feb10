@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app/app_router.dart';
 import 'core/app_localizations.dart';
 import 'core/app_theme.dart';
+import 'core/session_store.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +20,25 @@ class ExcelAiAssistantApp extends StatefulWidget {
 }
 
 class _ExcelAiAssistantAppState extends State<ExcelAiAssistantApp> {
+  final _store = SessionStore();
   Locale _locale = const Locale('ar');
 
+  @override
+  void initState() {
+    super.initState();
+    _restoreLocale();
+  }
+
+  Future<void> _restoreLocale() async {
+    final code = await _store.getLocaleCode();
+    if (code == null || !mounted) return;
+    setState(() => _locale = Locale(code));
+  }
+
   void _toggleLocale() {
-    setState(() {
-      _locale = _locale.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
-    });
+    final next = _locale.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
+    setState(() => _locale = next);
+    _store.setLocaleCode(next.languageCode);
   }
 
   @override

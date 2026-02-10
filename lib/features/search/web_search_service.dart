@@ -22,16 +22,30 @@ class WebSearchService {
         'key': apiKey,
         'cx': cx,
         'q': query,
-        'num': '3',
+        'num': '5',
       },
     );
 
-    final response = await _client.get(uri).timeout(const Duration(seconds: 15));
-    if (response.statusCode != 200) return [];
+    try {
+      final response = await _client.get(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return [];
 
-    final payload = jsonDecode(response.body) as Map<String, dynamic>;
-    final items = (payload['items'] as List<dynamic>? ?? <dynamic>[]).cast<Map<String, dynamic>>();
+      final payload = jsonDecode(response.body);
+      if (payload is! Map<String, dynamic>) return [];
 
-    return items.map((item) => '- ${item['title'] ?? 'Untitled'}\n  ${item['link'] ?? ''}').toList(growable: false);
+      final items = payload['items'];
+      if (items is! List) return [];
+
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map((item) => '- ${item['title'] ?? 'Untitled'}\n  ${item['link'] ?? ''}')
+          .toList(growable: false);
+    } on TimeoutException {
+      return [];
+    } on FormatException {
+      return [];
+    }
   }
+
+  void dispose() => _client.close();
 }
