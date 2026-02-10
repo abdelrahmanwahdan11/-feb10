@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/app_config.dart';
 import '../../core/app_localizations.dart';
 import '../../core/session_store.dart';
 import '../ai/gemini_service.dart';
 import '../loading/branded_loader.dart';
+import '../search/web_search_service.dart';
 import 'excel_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,6 +25,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final _gemini = GeminiService();
   final _excelService = ExcelService();
   final _store = SessionStore();
+  final _search = WebSearchService(
+    apiKey: AppConfig.searchApiKey,
+    cx: AppConfig.searchEngineCx,
+  );
 
   String? _fileName;
   String _result = '';
@@ -47,13 +53,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _pickExcelFile() async {
+    final tr = AppLocalizations.of(context);
     final res = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx', 'xls', 'xlsm', 'csv'],
     );
-    if (res != null && mounted) {
-      setState(() => _fileName = res.files.single.name);
-    }
+    if (res == null || !mounted) return;
+
+    final file = res.files.single;
+    final preview = await _excelService.previewFile(file);
+
+    setState(() {
+      _fileName = file.name;
+      _result = '${tr.t('filePreview')}:\n$preview';
+    });
   }
 
   Future<void> _runAiFlow() async {
@@ -67,28 +80,63 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _busy = true);
 
     final prompt = '''
+You are an Excel automation assistant.
 User request: ${_promptCtrl.text}
 File: ${_fileName ?? tr.t('noFileSelected')}
-Please return actionable steps for Excel-compatible edits, analysis, and report generation.
+Please return:
+1) Data cleaning plan
+2) Formula suggestions
+3) Visualization recommendations
+4) Final report structure
 ''';
 
     final output = await _gemini.runPrompt(prompt, missingKeyMessage: tr.t('geminiMissing'));
-    if (mounted) {
-      setState(() {
-        _result = output;
-        _busy = false;
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _result = output;
+      _busy = false;
+    });
   }
 
-  Future<void> _createDemoReport() async {
+  Future<void> _runWebInsights() async {
+    final tr = AppLocalizations.of(context);
+    final query = _promptCtrl.text.trim();
+    if (query.isEmpty) return;
+
+    setState(() => _busy = true);
+
+    if (!_search.isConfigured) {
+      setState(() {
+        _result = tr.t('searchMissing');
+        _busy = false;
+      });
+      return;
+    }
+
+    final links = await _search.search(query);
+    if (!mounted) return;
+
+    setState(() {
+      _result = links.isEmpty ? tr.t('searchNoResult') : '${tr.t('searchResults')}\n${links.join('\n')}';
+      _busy = false;
+    });
+  }
+
+  Future<void> _runAutopilot() async {
     final tr = AppLocalizations.of(context);
     setState(() => _busy = true);
-    final path = await _excelService.createDemoReport();
+
+    final aiPlan = await _gemini.runPrompt(
+      'Create an autonomous Excel workflow plan for: ${_promptCtrl.text}',
+      missingKeyMessage: tr.t('geminiMissing'),
+    );
+    final reportPath = await _excelService.createDemoReport();
+
     if (!mounted) return;
     setState(() {
       _busy = false;
-      _result = '${tr.t('demoCreated')}\n$path';
+      _result = '${tr.t('autopilotDone')}\n\n$aiPlan\n\n${tr.t('generatedFilePath')}:\n$reportPath';
     });
   }
 
@@ -126,13 +174,14 @@ Please return actionable steps for Excel-compatible edits, analysis, and report 
                           children: [
                             const Icon(Icons.table_chart_rounded, size: 34).animate(onPlay: (c) => c.repeat()).shimmer(),
                             const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(tr.t('workspaceTitle'), style: Theme.of(context).textTheme.titleLarge),
-                            ),
+                            Expanded(child: Text(tr.t('workspaceTitle'), style: Theme.of(context).textTheme.titleLarge)),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Text('${tr.t('welcomeBack')}: ${isGuest ? tr.t('modeGuest') : tr.t('modeUser')}'),
+                        const SizedBox(height: 8),
+                        Text('${tr.t('geminiStatus')}: ${AppConfig.hasGemini ? tr.t('statusReady') : tr.t('statusMissing')}'),
+                        Text('${tr.t('searchStatus')}: ${AppConfig.hasSearch ? tr.t('statusReady') : tr.t('statusMissing')}'),
                         const SizedBox(height: 14),
                         Text(_fileName ?? tr.t('noFileSelected')),
                         const SizedBox(height: 12),
@@ -146,9 +195,9 @@ Please return actionable steps for Excel-compatible edits, analysis, and report 
                               label: Text(tr.t('upload')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: _createDemoReport,
-                              icon: const Icon(Icons.description_rounded),
-                              label: Text(tr.t('createDemoReport')),
+                              onPressed: _runAutopilot,
+                              icon: const Icon(Icons.auto_mode_rounded),
+                              label: Text(tr.t('autopilot')),
                             ),
                           ],
                         ),
@@ -167,16 +216,27 @@ Please return actionable steps for Excel-compatible edits, analysis, and report 
                   ),
                 ),
                 const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: _runAiFlow,
-                  icon: const Icon(Icons.play_circle_fill_rounded),
-                  label: Text(tr.t('generate')),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _runAiFlow,
+                      icon: const Icon(Icons.play_circle_fill_rounded),
+                      label: Text(tr.t('generate')),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _runWebInsights,
+                      icon: const Icon(Icons.travel_explore_rounded),
+                      label: Text(tr.t('searchWeb')),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(18),
-                    child: Text(
+                    child: SelectableText(
                       _result.isEmpty ? tr.t('aiOutputPlaceholder') : _result,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),

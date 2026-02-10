@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart';
 
@@ -29,5 +30,24 @@ class ExcelService {
     final file = File('${dir.path}/excel_ai_demo_report.xlsx');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<String> previewFile(PlatformFile file) async {
+    final ext = file.extension?.toLowerCase();
+    final path = file.path;
+
+    if (path == null) return 'File path not available.';
+
+    if (ext == 'csv') {
+      final lines = await File(path).readAsLines();
+      if (lines.isEmpty) return 'CSV file is empty.';
+      return lines.take(6).join('\n');
+    }
+
+    if (ext == 'xlsx' || ext == 'xls' || ext == 'xlsm') {
+      return 'Spreadsheet selected successfully. Detailed preview can be added in next phase.';
+    }
+
+    return 'Unsupported file format.';
   }
 }
