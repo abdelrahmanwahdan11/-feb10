@@ -1,0 +1,36 @@
+name: excel_ai_assistant
+description: "AI-powered Excel companion with bilingual onboarding and auth flows."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.2
+  intl: ^0.19.0
+  flutter_localizations:
+    sdk: flutter
+  go_router: ^14.2.7
+  shared_preferences: ^2.3.2
+  file_picker: ^8.1.2
+  syncfusion_flutter_xlsio: ^27.1.50
+  syncfusion_flutter_xlsio_parser: ^27.1.50
+  google_generative_ai: ^0.4.6
+  heroicons: ^0.11.0
+  flutter_svg: ^2.0.10+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/lottie/
