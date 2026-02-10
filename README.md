@@ -6,6 +6,7 @@
 - Authentication (Login / Signup / Guest) مع تحقق حقول وإظهار كلمة المرور
 - Custom Animated Loader
 - Home Workspace لرفع ملفات Excel بصيغ متعددة
+- محرر جداول (Spreadsheet Editor) يشبه تجربة Excel مع تعديل الخلايا والصيغ الأساسية
 - معاينة مبدئية للملف (خاصة CSV حالياً)
 - Autopilot Mode: يدمج خطة AI + إنشاء ملف Excel تجريبي
 - Smart Web Search عبر Google Custom Search API
@@ -27,5 +28,5 @@ flutter run \
 ## Notes
 
 - لا يوجد ربط Backend في هذه المرحلة (حسب الطلب).
-- دعم Excel الحالي مبدئي (رفع + إنشاء تقرير تجريبي + CSV preview).
+- دعم Excel الحالي يشمل: رفع ملفات، معاينة CSV، إنشاء ملفات CSV/XLSX جديدة، وتحرير الخلايا مع صيغ أساسية مثل SUM.
 - يمكن توسيع قراءة صيغ Excel الداخلية وتحليلها المتقدم في المرحلة القادمة.

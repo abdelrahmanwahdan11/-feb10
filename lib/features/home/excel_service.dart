@@ -69,4 +69,36 @@ class ExcelService {
 
     return const FilePreviewResult(status: PreviewStatus.unsupported, content: '');
   }
+
+  Future<String> saveDocumentAsCsv(List<List<String>> cells, String baseName) async {
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$baseName.csv');
+    final lines = cells.map((row) => row.map(_escapeCsv).join(',')).join('\n');
+    await file.writeAsString(lines, flush: true);
+    return file.path;
+  }
+
+  Future<String> saveDocumentAsXlsx(List<List<String>> cells, String baseName) async {
+    final workbook = Workbook();
+    final sheet = workbook.worksheets[0];
+    for (var r = 0; r < cells.length; r++) {
+      final row = cells[r];
+      for (var c = 0; c < row.length; c++) {
+        sheet.getRangeByIndex(r + 1, c + 1).setText(row[c]);
+      }
+    }
+    final bytes = workbook.saveAsStream();
+    workbook.dispose();
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$baseName.xlsx');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  String _escapeCsv(String cell) {
+    final hasSpecial = cell.contains(',') || cell.contains('"') || cell.contains('\n');
+    if (!hasSpecial) return cell;
+    return '"${cell.replaceAll('"', '""')}"';
+  }
 }

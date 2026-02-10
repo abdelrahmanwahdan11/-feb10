@@ -241,6 +241,11 @@ Please return:
                               icon: const Icon(Icons.auto_mode_rounded),
                               label: Text(tr.t('autopilot')),
                             ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/sheet'),
+                              icon: const Icon(Icons.table_view_rounded),
+                              label: Text(tr.t('openSheetEditor')),
+                            ),
                           ],
                         ),
                       ],

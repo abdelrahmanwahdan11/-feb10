@@ -1,0 +1,147 @@
+import 'package:flutter/material.dart';
+
+import '../../core/app_localizations.dart';
+import 'excel_service.dart';
+import 'spreadsheet_document.dart';
+
+class SpreadsheetEditorScreen extends StatefulWidget {
+  const SpreadsheetEditorScreen({super.key});
+
+  @override
+  State<SpreadsheetEditorScreen> createState() => _SpreadsheetEditorScreenState();
+}
+
+class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
+  final _doc = SpreadsheetDocument();
+  final _service = ExcelService();
+  int _selectedRow = 0;
+  int _selectedCol = 0;
+
+  String _colName(int index) {
+    var n = index + 1;
+    var name = '';
+    while (n > 0) {
+      final rem = (n - 1) % 26;
+      name = String.fromCharCode(65 + rem) + name;
+      n = (n - 1) ~/ 26;
+    }
+    return name;
+  }
+
+  Future<void> _editCell(int row, int col) async {
+    final tr = AppLocalizations.of(context);
+    final ctrl = TextEditingController(text: _doc.valueAt(row, col));
+    final val = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('editCell')} ${_colName(col)}${row + 1}'),
+        content: TextField(
+          controller: ctrl,
+          decoration: InputDecoration(hintText: tr.t('cellHint')),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: Text(tr.t('save'))),
+        ],
+      ),
+    );
+
+    if (val != null) {
+      setState(() {
+        _selectedRow = row;
+        _selectedCol = col;
+        _doc.setValue(row, col, val.trim());
+      });
+    }
+  }
+
+  Future<void> _saveCsv() async {
+    final tr = AppLocalizations.of(context);
+    final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr.t('savedTo')}: $path')));
+  }
+
+  Future<void> _saveXlsx() async {
+    final tr = AppLocalizations.of(context);
+    final path = await _service.saveDocumentAsXlsx(_doc.rawCells, 'sheet_editor_export');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr.t('savedTo')}: $path')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = AppLocalizations.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(tr.t('sheetEditor')),
+        actions: [
+          IconButton(onPressed: _saveCsv, icon: const Icon(Icons.description_outlined), tooltip: tr.t('saveCsv')),
+          IconButton(onPressed: _saveXlsx, icon: const Icon(Icons.grid_on_rounded), tooltip: tr.t('saveXlsx')),
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(onPressed: () => setState(_doc.addColumn), heroTag: 'add_col', child: const Icon(Icons.view_column)),
+          const SizedBox(height: 10),
+          FloatingActionButton.small(onPressed: () => setState(_doc.addRow), heroTag: 'add_row', child: const Icon(Icons.view_agenda)),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            color: Theme.of(context).colorScheme.primaryContainer,
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              '${tr.t('selectedCell')}: ${_colName(_selectedCol)}${_selectedRow + 1} | ${tr.t('value')}: ${_doc.valueAt(_selectedRow, _selectedCol)} | ${tr.t('resolved')}: ${_doc.resolvedValue(_selectedRow, _selectedCol)}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            child: Scrollbar(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  child: DataTable(
+                    columns: [
+                      const DataColumn(label: Text('#')),
+                      ...List.generate(_doc.columns, (c) => DataColumn(label: Text(_colName(c)))),
+                    ],
+                    rows: List.generate(
+                      _doc.rows,
+                      (r) => DataRow(
+                        cells: [
+                          DataCell(Text('${r + 1}')),
+                          ...List.generate(
+                            _doc.columns,
+                            (c) {
+                              final raw = _doc.valueAt(r, c);
+                              final resolved = _doc.resolvedValue(r, c);
+                              final display = raw.startsWith('=') ? '$raw → $resolved' : raw;
+                              return DataCell(
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(minWidth: 110, maxWidth: 180),
+                                  child: Text(display, overflow: TextOverflow.ellipsis),
+                                ),
+                                onTap: () => _editCell(r, c),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
