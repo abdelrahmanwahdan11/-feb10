@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,13 +37,14 @@ class _HomeScreenState extends State<HomeScreen> {
   String _result = '';
   bool _busy = false;
   String? _authMode;
+  Timer? _draftDebounce;
 
   @override
   void initState() {
     super.initState();
     _loadAuthMode();
     _loadPromptDraft();
-    _promptCtrl.addListener(_persistPromptDraft);
+    _promptCtrl.addListener(_schedulePromptDraftPersist);
   }
 
   Future<void> _loadAuthMode() async {
@@ -64,7 +67,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _promptCtrl.text = draft;
   }
 
-  Future<void> _persistPromptDraft() async {
+  void _schedulePromptDraftPersist() {
+    _draftDebounce?.cancel();
+    _draftDebounce = Timer(const Duration(milliseconds: 350), _persistPromptDraftNow);
+  }
+
+  Future<void> _persistPromptDraftNow() async {
     await _store.setPromptDraft(_promptCtrl.text);
   }
 
@@ -77,7 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _promptCtrl.removeListener(_persistPromptDraft);
+    _promptCtrl.removeListener(_schedulePromptDraftPersist);
+    _draftDebounce?.cancel();
     _promptCtrl.dispose();
     _search.dispose();
     super.dispose();
