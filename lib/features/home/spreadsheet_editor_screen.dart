@@ -477,6 +477,37 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
 
 
 
+
+  Future<void> _normalizeSelectedColumn() async {
+    final tr = AppLocalizations.of(context);
+    var updated = 0;
+    setState(() {
+      _doc.snapshot();
+      updated = _doc.normalizeColumnZScore(_selectedCol, skipHeader: true);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr.t('normalizedCells')}: $updated')),
+    );
+  }
+
+  Future<void> _detectOutliers() async {
+    final tr = AppLocalizations.of(context);
+    final rows = _doc.detectOutlierRowsIqr(_selectedCol, skipHeader: true);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${tr.t('outlierDetection')} ${_colName(_selectedCol)}'),
+        content: Text(
+          rows.isEmpty ? tr.t('noOutliers') : '${tr.t('outlierRows')}: ${rows.map((e) => e + 1).join(', ')}',
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('ok'))),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openFormulaAssistant() async {
     final tr = AppLocalizations.of(context);
     final templates = <String>[
@@ -552,6 +583,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _showColumnDeepStats, icon: const Icon(Icons.insights_rounded), tooltip: tr.t('columnDeepStats')),
+          IconButton(onPressed: _normalizeSelectedColumn, icon: const Icon(Icons.auto_graph_rounded), tooltip: tr.t('normalizeColumn')),
+          IconButton(onPressed: _detectOutliers, icon: const Icon(Icons.warning_amber_rounded), tooltip: tr.t('outlierDetection')),
           IconButton(onPressed: _openFormulaAssistant, icon: const Icon(Icons.functions_rounded), tooltip: tr.t('formulaAssistant')),
           IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
           IconButton(onPressed: _insertRowBelow, icon: const Icon(Icons.playlist_add_rounded), tooltip: tr.t('insertRowBelow')),
@@ -613,7 +646,7 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
+            child: Text('${tr.t('formulaSupportTip')} | ${tr.t('arithmeticFormulasTip')} | ${tr.t('advancedFormulaTip')} | ${tr.t('conditionalFormulaTip')} | ${tr.t('dispersionFormulaTip')} | ${tr.t('rankingFormulaTip')} | ${tr.t('outlierTip')} | ${tr.t('sortState')}: ${_sortAscending ? tr.t('ascending') : tr.t('descending')}'),
           ),
           Expanded(
             child: Scrollbar(

@@ -238,6 +238,46 @@ class SpreadsheetDocument {
     return (median: median, stdev: stdev, variance: variance, sum: sum, count: values.length);
   }
 
+  int normalizeColumnZScore(int col, {bool skipHeader = true}) {
+    final stats = columnAdvancedStats(col, skipHeader: skipHeader);
+    if (stats.count == 0 || stats.stdev == null || stats.stdev == 0) return 0;
+
+    final mean = stats.sum / stats.count;
+    final start = skipHeader ? 1 : 0;
+    var updated = 0;
+    for (var r = start; r < rows; r++) {
+      final v = double.tryParse(_cells[r][col]);
+      if (v == null) continue;
+      final z = (v - mean) / stats.stdev!;
+      _cells[r][col] = z.toStringAsFixed(3);
+      updated += 1;
+    }
+    return updated;
+  }
+
+  List<int> detectOutlierRowsIqr(int col, {bool skipHeader = true, double factor = 1.5}) {
+    final start = skipHeader ? 1 : 0;
+    final pairs = <(int, double)>[];
+    for (var r = start; r < rows; r++) {
+      final v = double.tryParse(_cells[r][col]);
+      if (v != null) pairs.add((r, v));
+    }
+    if (pairs.length < 4) return [];
+
+    final sorted = pairs.map((e) => e.$2).toList()..sort();
+    final q1 = _percentile(sorted, 0.25);
+    final q3 = _percentile(sorted, 0.75);
+    final iqr = q3 - q1;
+    final low = q1 - factor * iqr;
+    final high = q3 + factor * iqr;
+
+    final rowsOut = <int>[];
+    for (final item in pairs) {
+      if (item.$2 < low || item.$2 > high) rowsOut.add(item.$1);
+    }
+    return rowsOut;
+  }
+
   List<(int, int)> findMatches(String query, {bool caseSensitive = false}) {
     final q = caseSensitive ? query : query.toLowerCase();
     if (q.trim().isEmpty) return [];
@@ -657,6 +697,18 @@ class SpreadsheetDocument {
       ..addAll(_clone(matrix));
     rows = _cells.length;
     columns = _cells.isEmpty ? 0 : _cells.first.length;
+  }
+
+  double _percentile(List<double> sorted, double p) {
+    if (sorted.isEmpty) return 0;
+    if (p <= 0) return sorted.first;
+    if (p >= 1) return sorted.last;
+    final pos = p * (sorted.length - 1);
+    final lo = pos.floor();
+    final hi = pos.ceil();
+    if (lo == hi) return sorted[lo];
+    final f = pos - lo;
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * f;
   }
 
   double _sqrt(double value) {
