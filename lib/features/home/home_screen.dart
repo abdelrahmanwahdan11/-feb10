@@ -40,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadAuthMode();
+    _loadPromptDraft();
+    _promptCtrl.addListener(_persistPromptDraft);
   }
 
   Future<void> _loadAuthMode() async {
@@ -47,8 +49,26 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() => _authMode = mode);
   }
 
+
+  Future<void> _loadPromptDraft() async {
+    final draft = await _store.getPromptDraft();
+    if (draft == null || !mounted) return;
+    _promptCtrl.text = draft;
+  }
+
+  Future<void> _persistPromptDraft() async {
+    await _store.setPromptDraft(_promptCtrl.text);
+  }
+
+  Future<void> _openRoute(String route) async {
+    await _store.setLastVisitedRoute(route);
+    if (!mounted) return;
+    context.push(route);
+  }
+
   @override
   void dispose() {
+    _promptCtrl.removeListener(_persistPromptDraft);
     _promptCtrl.dispose();
     super.dispose();
   }
@@ -246,82 +266,102 @@ Please return:
                               label: Text(tr.t('autopilot')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/sheet'),
+                              onPressed: () => _openRoute('/sheet'),
                               icon: const Icon(Icons.table_view_rounded),
                               label: Text(tr.t('openSheetEditor')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/reports'),
+                              onPressed: () => _openRoute('/reports'),
                               icon: const Icon(Icons.assessment_rounded),
                               label: Text(tr.t('reportsCenter')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/settings'),
+                              onPressed: () => _openRoute('/settings'),
                               icon: const Icon(Icons.settings_rounded),
                               label: Text(tr.t('settings')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/progress'),
+                              onPressed: () => _openRoute('/progress'),
                               icon: const Icon(Icons.insights_rounded),
                               label: Text(tr.t('progressCenter')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/profile'),
+                              onPressed: () => _openRoute('/profile'),
                               icon: const Icon(Icons.person_outline_rounded),
                               label: Text(tr.t('profile')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/notifications'),
+                              onPressed: () => _openRoute('/notifications'),
                               icon: const Icon(Icons.notifications_none_rounded),
                               label: Text(tr.t('notifications')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/privacy'),
+                              onPressed: () => _openRoute('/privacy'),
                               icon: const Icon(Icons.shield_outlined),
                               label: Text(tr.t('privacySecurity')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/billing'),
+                              onPressed: () => _openRoute('/billing'),
                               icon: const Icon(Icons.payments_outlined),
                               label: Text(tr.t('billing')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/team'),
+                              onPressed: () => _openRoute('/team'),
                               icon: const Icon(Icons.groups_outlined),
                               label: Text(tr.t('teamWorkspace')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/integrations'),
+                              onPressed: () => _openRoute('/integrations'),
                               icon: const Icon(Icons.extension_outlined),
                               label: Text(tr.t('integrations')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/activity'),
+                              onPressed: () => _openRoute('/activity'),
                               icon: const Icon(Icons.timeline_outlined),
                               label: Text(tr.t('activityTimeline')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/backup'),
+                              onPressed: () => _openRoute('/backup'),
                               icon: const Icon(Icons.backup_outlined),
                               label: Text(tr.t('backupRestore')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/support-tickets'),
+                              onPressed: () => _openRoute('/support-tickets'),
                               icon: const Icon(Icons.support_agent_outlined),
                               label: Text(tr.t('supportTickets')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/expert-review'),
+                              onPressed: () => _openRoute('/dashboard'),
+                              icon: const Icon(Icons.space_dashboard_outlined),
+                              label: Text(tr.t('dashboard')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _openRoute('/automation'),
+                              icon: const Icon(Icons.auto_mode_outlined),
+                              label: Text(tr.t('automationCenter')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _openRoute('/data-catalog'),
+                              icon: const Icon(Icons.dataset_outlined),
+                              label: Text(tr.t('dataCatalog')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _openRoute('/api-keys'),
+                              icon: const Icon(Icons.vpn_key_outlined),
+                              label: Text(tr.t('apiKeysManager')),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _openRoute('/expert-review'),
                               icon: const Icon(Icons.fact_check_rounded),
                               label: Text(tr.t('expertReview')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/templates'),
+                              onPressed: () => _openRoute('/templates'),
                               icon: const Icon(Icons.inventory_2_rounded),
                               label: Text(tr.t('templatesCenter')),
                             ),
                             OutlinedButton.icon(
-                              onPressed: () => context.push('/help-center'),
+                              onPressed: () => _openRoute('/help-center'),
                               icon: const Icon(Icons.support_agent_rounded),
                               label: Text(tr.t('helpCenter')),
                             ),

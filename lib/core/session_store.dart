@@ -82,6 +82,15 @@ class SessionStore {
     await prefs.setString(key, value);
   }
 
+
+  Future<void> setPromptDraft(String value) => setStringPref('draft_prompt', value);
+
+  Future<String?> getPromptDraft() => getStringPref('draft_prompt');
+
+  Future<void> setLastVisitedRoute(String route) => setStringPref('last_route', route);
+
+  Future<String?> getLastVisitedRoute() => getStringPref('last_route');
+
   Future<void> resetPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_darkModeKey);

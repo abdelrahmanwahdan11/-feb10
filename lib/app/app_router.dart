@@ -17,6 +17,10 @@ import '../features/integrations/integrations_screen.dart';
 import '../features/activity/activity_timeline_screen.dart';
 import '../features/backup/backup_restore_screen.dart';
 import '../features/support/support_tickets_screen.dart';
+import '../features/dashboard/dashboard_screen.dart';
+import '../features/automation/automation_center_screen.dart';
+import '../features/data/data_catalog_screen.dart';
+import '../features/api/api_keys_screen.dart';
 import '../features/review/expert_review_screen.dart';
 import '../features/review/help_center_screen.dart';
 import '../features/reports/reports_screen.dart';
@@ -46,6 +50,10 @@ GoRouter buildRouter({required void Function() onToggleLanguage}) {
       GoRoute(path: '/activity', builder: (_, __) => const ActivityTimelineScreen()),
       GoRoute(path: '/backup', builder: (_, __) => const BackupRestoreScreen()),
       GoRoute(path: '/support-tickets', builder: (_, __) => const SupportTicketsScreen()),
+      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+      GoRoute(path: '/automation', builder: (_, __) => const AutomationCenterScreen()),
+      GoRoute(path: '/data-catalog', builder: (_, __) => const DataCatalogScreen()),
+      GoRoute(path: '/api-keys', builder: (_, __) => const ApiKeysScreen()),
       GoRoute(path: '/expert-review', builder: (_, __) => const ExpertReviewScreen()),
       GoRoute(path: '/help-center', builder: (_, __) => const HelpCenterScreen()),
     ],
