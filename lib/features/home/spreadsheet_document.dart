@@ -106,6 +106,45 @@ class SpreadsheetDocument {
     return (min: min, max: max, avg: avg, count: count);
   }
 
+
+  List<(int, int)> findMatches(String query, {bool caseSensitive = false}) {
+    final q = caseSensitive ? query : query.toLowerCase();
+    if (q.trim().isEmpty) return [];
+
+    final matches = <(int, int)>[];
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < columns; c++) {
+        final cell = caseSensitive ? _cells[r][c] : _cells[r][c].toLowerCase();
+        if (cell.contains(q)) {
+          matches.add((r, c));
+        }
+      }
+    }
+    return matches;
+  }
+
+  int replaceAll(String findText, String replaceText, {bool caseSensitive = false}) {
+    final q = caseSensitive ? findText : findText.toLowerCase();
+    if (q.trim().isEmpty) return 0;
+
+    int replaced = 0;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < columns; c++) {
+        final source = _cells[r][c];
+        final probe = caseSensitive ? source : source.toLowerCase();
+        if (probe.contains(q)) {
+          if (caseSensitive) {
+            _cells[r][c] = source.replaceAll(findText, replaceText);
+          } else {
+            _cells[r][c] = _replaceCaseInsensitive(source, findText, replaceText);
+          }
+          replaced += 1;
+        }
+      }
+    }
+    return replaced;
+  }
+
   String resolvedValue(int row, int col) {
     final source = _cells[row][col].trim();
     if (!source.startsWith('=')) return source;
@@ -222,6 +261,12 @@ class SpreadsheetDocument {
       col = col * 26 + (code - 64);
     }
     return (rowRef - 1, col - 1);
+  }
+
+
+  String _replaceCaseInsensitive(String source, String find, String replace) {
+    final escaped = RegExp.escape(find);
+    return source.replaceAll(RegExp(escaped, caseSensitive: false), replace);
   }
 
   List<List<String>> _clone(List<List<String>> matrix) => matrix.map((r) => List<String>.from(r)).toList();

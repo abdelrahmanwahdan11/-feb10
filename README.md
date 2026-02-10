@@ -6,7 +6,7 @@
 - Authentication (Login / Signup / Guest) مع تحقق حقول وإظهار كلمة المرور
 - Custom Animated Loader
 - Home Workspace لرفع ملفات Excel بصيغ متعددة
-- محرر جداول (Spreadsheet Editor) يشبه تجربة Excel مع تعديل الخلايا والصيغ الأساسية + undo/redo + لصق جداول + تعبئة للأسفل + فرز ذكي للأعمدة + إحصائيات العمود + تكرار الصف
+- محرر جداول (Spreadsheet Editor) يشبه تجربة Excel مع تعديل الخلايا والصيغ الأساسية + undo/redo + لصق جداول + تعبئة للأسفل + فرز ذكي للأعمدة + إحصائيات العمود + تكرار الصف + بحث/استبدال داخل الورقة
 - معاينة مبدئية للملف (خاصة CSV حالياً)
 - Autopilot Mode: يدمج خطة AI + إنشاء ملف Excel تجريبي
 - Smart Web Search عبر Google Custom Search API

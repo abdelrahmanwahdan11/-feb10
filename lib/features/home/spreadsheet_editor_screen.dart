@@ -195,6 +195,83 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
     });
   }
 
+
+  Future<void> _findInSheet() async {
+    final tr = AppLocalizations.of(context);
+    final ctrl = TextEditingController();
+    final query = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('findInSheet')),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(hintText: tr.t('findHint')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: Text(tr.t('find'))),
+        ],
+      ),
+    );
+
+    if (query == null || query.isEmpty) return;
+    final matches = _doc.findMatches(query);
+    if (matches.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.t('noMatches'))));
+      return;
+    }
+
+    setState(() {
+      _selectedRow = matches.first.$1;
+      _selectedCol = matches.first.$2;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr.t('matchesFound')}: ${matches.length}')),
+    );
+  }
+
+  Future<void> _replaceInSheet() async {
+    final tr = AppLocalizations.of(context);
+    final findCtrl = TextEditingController();
+    final replaceCtrl = TextEditingController();
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.t('replaceInSheet')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: findCtrl, decoration: InputDecoration(labelText: tr.t('find'))),
+            const SizedBox(height: 8),
+            TextField(controller: replaceCtrl, decoration: InputDecoration(labelText: tr.t('replaceWith'))),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr.t('apply'))),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    final findText = findCtrl.text.trim();
+    if (findText.isEmpty) return;
+
+    int count = 0;
+    setState(() {
+      _doc.snapshot();
+      count = _doc.replaceAll(findText, replaceCtrl.text);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr.t('replacedCount')}: $count')),
+    );
+  }
+
   Future<void> _saveCsv() async {
     final tr = AppLocalizations.of(context);
     final path = await _service.saveDocumentAsCsv(_doc.rawCells, 'sheet_editor_export');
@@ -224,6 +301,8 @@ class _SpreadsheetEditorScreenState extends State<SpreadsheetEditorScreen> {
           IconButton(onPressed: _sortBySelectedColumn, icon: const Icon(Icons.sort_rounded), tooltip: tr.t('sortByColumn')),
           IconButton(onPressed: _showColumnStats, icon: const Icon(Icons.query_stats_rounded), tooltip: tr.t('columnStats')),
           IconButton(onPressed: _duplicateSelectedRow, icon: const Icon(Icons.copy_all_rounded), tooltip: tr.t('duplicateRow')),
+          IconButton(onPressed: _findInSheet, icon: const Icon(Icons.search_rounded), tooltip: tr.t('findInSheet')),
+          IconButton(onPressed: _replaceInSheet, icon: const Icon(Icons.find_replace_rounded), tooltip: tr.t('replaceInSheet')),
           IconButton(onPressed: _clearSheet, icon: const Icon(Icons.delete_sweep_rounded), tooltip: tr.t('clearSheet')),
           IconButton(
             onPressed: _doc.canUndo ? () => setState(() => _doc.undo()) : null,
